@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Higher Rank Rank Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Hanken+Grotesk:wght@400;600&family=Martian+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============ S0 TOKENS ============
+   Layout idea: one dark stage; every chapter is a ranked list of heavy type rows that reorder.
+   Vermilion is reserved for whatever holds position 01. */
+:root{
+  color-scheme:dark;
+  --ink:#0d0c0b; --stage:#161412; --line:#2c2823; --dim:#8d8579; --paper:#f1ece3; --hot:#ff4a1c;
+  --display:"Big Shoulders Display","Arial Narrow","Haettenschweiler",sans-serif;
+  --body:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --mono:"Martian Mono",ui-monospace,Menlo,monospace;
+  --bar:60px; --gut:clamp(16px,4vw,56px); --rh:46px; --ease:cubic-bezier(.3,1.25,.4,1);
+  --mx:70%; --my:20%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);font-size:17px;line-height:1.55;overflow-x:hidden}
+a{color:inherit}
+ol,ul{list-style:none}
+:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+.light{position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(520px circle at var(--mx) var(--my),rgba(255,74,28,.13),transparent 65%)}
+main,footer{position:relative;z-index:2}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+h1,h2,h3{font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.92;text-wrap:balance;letter-spacing:.005em}
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--hot);color:var(--ink);font-family:var(--mono);font-weight:600;font-size:13px;
+  letter-spacing:.04em;text-transform:uppercase;text-decoration:none;padding:13px 18px;border:0;cursor:pointer;transition:transform .25s var(--ease),background .2s}
+.btn:hover{transform:translateY(-3px);background:var(--paper)}
+.btn .arr{display:inline-block;transition:transform .25s var(--ease)}
+.btn:hover .arr{transform:translateY(-3px) rotate(-45deg)}
+.ghostbtn{font-family:var(--mono);font-size:13px;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid var(--dim);padding-bottom:3px}
+.ghostbtn:hover{border-color:var(--hot);color:var(--hot)}
+
+/* ============ S1 BAR ============ */
+.bar{position:fixed;top:0;left:0;right:0;height:var(--bar);z-index:10;display:flex;align-items:center;gap:24px;padding:0 var(--gut);
+  background:linear-gradient(var(--ink),rgba(13,12,11,.82) 70%,transparent)}
+.mark{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.06em;text-decoration:none;text-transform:uppercase}
+.mark b{color:var(--hot);font-weight:800}
+.bar nav{display:flex;gap:22px;margin-left:auto}
+.bar nav a{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--dim)}
+.bar nav a:hover{color:var(--paper)}
+.rank{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;min-width:8ch;text-align:right;color:var(--hot)}
+.rank small{color:var(--dim);font-size:10px;letter-spacing:.08em;margin-right:6px}
+.bar .btn{padding:9px 14px;font-size:12px}
+.dock{display:none}
+
+/* ============ S2 RANK LIST (shared) ============ */
+.list{position:relative;width:100%}
+.row{position:absolute;left:0;right:0;top:0;height:var(--rh);display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line);
+  font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:calc(var(--rh)*.62);line-height:1;color:var(--dim);white-space:nowrap;
+  transition:transform .55s var(--ease),color .3s;will-change:transform}
+.row .n{font-family:var(--mono);font-weight:400;font-size:11px;width:3ch;flex:none;color:var(--dim);font-variant-numeric:tabular-nums}
+.row.you{color:var(--paper)}
+.row.top,.row.top .n{color:var(--hot)}
+.row.cut{color:#544e46;text-decoration:line-through;text-decoration-thickness:2px}
+.row.cut .n{color:#544e46}
+
+/* ============ S3 HERO ============ */
+.hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(24px,5vw,80px);align-items:end;
+  padding:calc(var(--bar) + clamp(28px,7vh,90px)) var(--gut) clamp(40px,8vh,96px)}
+.hero h1{font-size:clamp(64px,10.5vw,176px);margin:18px 0 22px}
+.hero h1 em{font-style:normal;color:var(--hot)}
+.hero p.lead{max-width:44ch;color:#cfc8bc}
+.hero .cta{display:flex;flex-wrap:wrap;align-items:center;gap:22px;margin-top:28px}
+#heroList{--rh:clamp(34px,4.6vh,44px);cursor:default;touch-action:pan-y}
+#heroList .row{cursor:ns-resize}
+.hint{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.hint .touch{display:none}
+@media (hover:none){.hint .mouse{display:none}.hint .touch{display:inline}}
+
+/* ============ S4 ORIENTATION ============ */
+.orient{padding:clamp(56px,12vh,140px) var(--gut)}
+.orient .lead{font-size:clamp(20px,2.3vw,30px);line-height:1.3;max-width:30ch;margin:14px 0 clamp(32px,6vh,64px)}
+.big{display:grid;grid-template-columns:5ch minmax(0,1fr) minmax(0,26ch);gap:20px;align-items:baseline;padding:22px 0;border-top:1px solid var(--line);
+  text-decoration:none;transition:padding .35s var(--ease),color .25s}
+.big:last-child{border-bottom:1px solid var(--line)}
+.big .n{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.big h2{font-size:clamp(44px,8.4vw,132px)}
+.big p{color:var(--dim);font-size:15px}
+.big p b{display:block;color:var(--paper);font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.big:hover,.big:focus-visible{color:var(--hot);padding-left:clamp(8px,2vw,28px)}
+.big:hover .n{color:var(--hot)}
+
+/* ============ S5 SCENES (pinned chapters) ============ */
+.scene{height:420vh;position:relative}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);
+  gap:clamp(24px,5vw,80px);align-items:center;padding:var(--bar) var(--gut) 28px;border-top:1px solid var(--line);background:var(--ink)}
+.stage::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--hot);transform-origin:left;transform:scaleX(var(--p,0))}
+.numeral{position:absolute;right:-2vw;top:50%;font-family:var(--display);font-weight:800;font-size:min(92vh,62vw);line-height:.8;color:transparent;
+  -webkit-text-stroke:1px var(--line);transform:translateY(calc(-50% + (0.5 - var(--p,0)) * 26vh));pointer-events:none;user-select:none}
+.copy{position:relative}
+.copy h2{font-size:clamp(40px,6.2vw,104px);margin:14px 0 20px}
+.cap{min-height:5.2em;max-width:38ch;color:#cfc8bc}
+.cap b{display:block;font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--hot);margin-bottom:6px}
+.pane{position:relative}
+.scene .list{--rh:clamp(38px,6.4vh,62px)}
+.cutline{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--hot);margin-top:12px;opacity:0;transition:opacity .4s}
+.cutline.on{opacity:1}
+/* events */
+.room{position:relative;width:min(100%,64vh);aspect-ratio:1;margin-left:auto}
+.chip{position:absolute;left:0;top:0;height:28px;border:1px solid var(--line);background:var(--stage);border-radius:14px;overflow:hidden;
+  font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--paper);display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.chip.team{background:var(--hot);border-color:var(--hot);color:var(--ink)}
+.ring{position:absolute;border:1px dashed var(--dim);border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--dim);opacity:0}
+
+/* ============ S6 PROCESS / PROOF ============ */
+.block{padding:clamp(64px,13vh,150px) var(--gut);border-top:1px solid var(--line)}
+.block>h2{font-size:clamp(40px,6.2vw,104px);margin:14px 0 clamp(28px,5vh,56px);max-width:14ch}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(16px,2.5vw,36px)}
+.steps li{border-top:2px solid var(--paper);padding-top:14px}
+.steps li:first-child{border-color:var(--hot)}
+.steps .n{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.steps li:first-child .n{color:var(--hot)}
+.steps h3{font-size:clamp(30px,3.4vw,52px);margin:10px 0}
+.steps p{color:#cfc8bc;font-size:15px}
+.slots{display:grid;gap:0}
+.slot{display:grid;grid-template-columns:5ch minmax(0,1fr) minmax(0,30ch);gap:20px;align-items:center;padding:20px 0;border-top:1px dashed var(--dim)}
+.slot:last-child{border-bottom:1px dashed var(--dim)}
+.slot .n{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.slot h3{font-size:clamp(26px,3.6vw,54px);color:#5b554c}
+.slot p{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--dim)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--hot);color:var(--hot);padding:2px 7px;margin-bottom:6px}
+
+/* ============ S7 CONTACT ============ */
+.contact{padding:clamp(64px,13vh,150px) var(--gut) clamp(64px,10vh,120px);border-top:1px solid var(--line)}
+.contact h2{font-size:clamp(40px,6.2vw,104px);margin:14px 0 clamp(24px,5vh,48px);max-width:13ch}
+.first{display:flex;align-items:center;gap:18px;border-top:2px solid var(--hot);border-bottom:1px solid var(--line);padding:10px 0}
+.first .n{font-family:var(--mono);font-size:12px;color:var(--hot)}
+.first input{flex:1;min-width:0;background:none;border:0;color:var(--hot);font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(40px,8vw,120px);line-height:1}
+.first input::placeholder{color:var(--hot);opacity:.38}
+.first input:focus{outline:none}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;margin:26px 0;max-width:760px}
+.fields label{display:grid;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.fields .wide{grid-column:1/-1}
+.fields input,.fields textarea{background:var(--stage);border:1px solid var(--line);color:var(--paper);font:inherit;font-family:var(--body);font-size:16px;padding:12px;text-transform:none;letter-spacing:0}
+.fields input:focus,.fields textarea:focus{outline:none;border-color:var(--hot)}
+.status{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--hot);min-height:1.5em}
+footer{padding:28px var(--gut) 40px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.04em}
+
+/* ============ S8 MOBILE ============ */
+@media (max-width:820px){
+  :root{--bar:52px}
+  .bar nav,.bar .btn{display:none}
+  .rank{margin-left:auto}
+  .dock{display:block;position:fixed;left:16px;right:16px;bottom:14px;z-index:10}
+  .dock .btn{width:100%;justify-content:center;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  body{padding-bottom:76px}
+  .hero{grid-template-columns:minmax(0,1fr);align-items:start}
+  .big{grid-template-columns:4ch minmax(0,1fr)}
+  .big p{grid-column:2}
+  .stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-items:start;gap:14px;padding-bottom:84px}
+  .copy h2{font-size:clamp(34px,10vw,56px);margin:8px 0 10px}
+  .cap{min-height:6.4em;font-size:15px}
+  .scene .list{--rh:clamp(30px,4.6svh,40px)}
+  .numeral{font-size:70vw;top:auto;bottom:6vh;transform:none;opacity:.6}
+  .room{width:min(100%,44svh);margin:0 auto}
+  .steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .slot{grid-template-columns:4ch minmax(0,1fr)}
+  .slot p{grid-column:2}
+  .fields{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .row,.btn,.btn .arr,.big,.cutline{transition:none}
+  .numeral{transform:translateY(-50%)}
+}
+</style>
+</head>
+<body>
+<div class="light" aria-hidden="true"></div>
+
+<!-- S1 BAR -->
+<header class="bar">
+  <a class="mark" href="#top">Higher <b>Rank</b></a>
+  <nav aria-label="Sections">
+    <a href="#marketing">Marketing</a>
+    <a href="#consulting">Consulting</a>
+    <a href="#events">Events</a>
+    <a href="#process">Process</a>
+  </nav>
+  <div class="rank" aria-hidden="true"><small>RANK</small>#<span id="rk">1,000</span></div>
+  <a class="btn" href="#contact">Discuss Your Project <span class="arr">→</span></a>
+</header>
+<div class="dock"><a class="btn" href="#contact">Discuss Your Project <span class="arr">→</span></a></div>
+
+<main>
+<!-- S3 HERO -->
+<section class="hero" id="top">
+  <div>
+    <p class="eyebrow">Digital marketing · Consulting and management · Events</p>
+    <h1>We move businesses <em>up.</em></h1>
+    <p class="lead">Your customers rank everything they see, all day. Higher Rank gets your business noticed, running in the right order, and in the room with the people who matter.</p>
+    <div class="cta">
+      <a class="btn" href="#contact">Discuss Your Project <span class="arr">→</span></a>
+      <a class="ghostbtn" href="#what">See what we do</a>
+    </div>
+  </div>
+  <div>
+    <p class="eyebrow">What your customer notices today</p>
+    <ol class="list" id="heroList" aria-label="A ranked list of things competing for a customer's attention"></ol>
+    <p class="hint"><span class="mouse">Rest your cursor on a line. Attention moves it up.</span><span class="touch">Press and hold a line. Attention moves it up.</span></p>
+  </div>
+</section>
+
+<!-- S4 ORIENTATION -->
+<section class="orient" id="what">
+  <p class="eyebrow">Three ways up</p>
+  <p class="lead">For owners and teams who are good at what they do and want more people to know it.</p>
+  <a class="big" href="#marketing"><span class="n">01</span><h2>Get noticed</h2><p><b>Digital marketing</b>We bring the right people to you and turn their attention into leads.</p></a>
+  <a class="big" href="#consulting"><span class="n">02</span><h2>Run better</h2><p><b>Consulting and management</b>We help you decide what comes first, then make it happen.</p></a>
+  <a class="big" href="#events"><span class="n">03</span><h2>Bring people together</h2><p><b>Events</b>We plan and produce gatherings that connect people with your brand.</p></a>
+</section>
+
+<!-- S5a MARKETING -->
+<section class="scene" id="marketing">
+  <div class="stage">
+    <div class="numeral" aria-hidden="true">01</div>
+    <div class="copy">
+      <p class="eyebrow">01 · Digital marketing</p>
+      <h2>Get noticed by people already looking.</h2>
+      <p class="cap" id="mktCap" aria-live="polite"></p>
+    </div>
+    <div class="pane"><ol class="list" id="mktList" aria-label="Your brand climbing a list of competitors as you scroll"></ol></div>
+  </div>
+</section>
+
+<!-- S5b CONSULTING -->
+<section class="scene" id="consulting">
+  <div class="stage">
+    <div class="numeral" aria-hidden="true">02</div>
+    <div class="copy">
+      <p class="eyebrow">02 · Consulting and management</p>
+      <h2>Put the work in the right order.</h2>
+      <p class="cap" id="conCap" aria-live="polite"></p>
+    </div>
+    <div class="pane">
+      <ol class="list" id="conList" aria-label="A jumbled list of priorities sorting itself as you scroll"></ol>
+      <p class="cutline" id="cutline">▲ Do these five. Stop the rest.</p>
+    </div>
+  </div>
+</section>
+
+<!-- S5c EVENTS -->
+<section class="scene" id="events">
+  <div class="stage">
+    <div class="numeral" aria-hidden="true">03</div>
+    <div class="copy">
+      <p class="eyebrow">03 · Events</p>
+      <h2>Put the right people in one room.</h2>
+      <p class="cap" id="evtCap" aria-live="polite"></p>
+    </div>
+    <div class="pane"><div class="room" id="room" role="img" aria-label="A guest list of eighteen people grouped by role rearranges into three mixed tables as you scroll"></div></div>
+  </div>
+</section>
+
+<!-- S6a PROCESS -->
+<section class="block" id="process">
+  <p class="eyebrow">How we work</p>
+  <h2>Four steps, in this order.</h2>
+  <ol class="steps">
+    <li><span class="n">01</span><h3>Listen</h3><p>We learn the business, the numbers and the customer before we propose anything.</p></li>
+    <li><span class="n">02</span><h3>Rank</h3><p>We agree on the few moves that matter most, and the order to make them in.</p></li>
+    <li><span class="n">03</span><h3>Build</h3><p>We run the campaign, the change or the event with you, and you see the work as it happens.</p></li>
+    <li><span class="n">04</span><h3>Measure</h3><p>We report what moved, then reorder the plan around it.</p></li>
+  </ol>
+</section>
+
+<!-- S6b PROOF (placeholders) -->
+<section class="block" id="work">
+  <p class="eyebrow">Work and results</p>
+  <h2>Proof goes here.</h2>
+  <div class="slots">
+    <div class="slot"><span class="n">01</span><h3>Project name</h3><p><span class="tag">Placeholder</span><br>Marketing project: client, what we did, measured outcome.</p></div>
+    <div class="slot"><span class="n">02</span><h3>Project name</h3><p><span class="tag">Placeholder</span><br>Consulting project: client, what changed, measured outcome.</p></div>
+    <div class="slot"><span class="n">03</span><h3>Event name</h3><p><span class="tag">Placeholder</span><br>Event: date, attendance, what came of it.</p></div>
+    <div class="slot"><span class="n">04</span><h3>Client quote</h3><p><span class="tag">Placeholder</span><br>Testimonial: real words, name, role, company.</p></div>
+    <div class="slot"><span class="n">05</span><h3>Templates and media</h3><p><span class="tag">Placeholder</span><br>Ready-made templates and online media: catalog and pricing to come.</p></div>
+  </div>
+</section>
+
+<!-- S7 CONTACT -->
+<section class="contact" id="contact">
+  <p class="eyebrow">Next on the list</p>
+  <h2>Put your project at number one.</h2>
+  <form id="form" novalidate>
+    <div class="first"><span class="n">01</span><input id="f-project" name="project" type="text" placeholder="Your project" aria-label="Name your project" autocomplete="off" maxlength="40"></div>
+    <div class="fields">
+      <label for="f-name">Your name<input id="f-name" name="name" type="text" autocomplete="name"></label>
+      <label for="f-email">Email<input id="f-email" name="email" type="email" autocomplete="email"></label>
+      <label class="wide" for="f-msg">What do you want to move up?<textarea id="f-msg" name="message" rows="3"></textarea></label>
+    </div>
+    <button class="btn" type="submit">Discuss Your Project <span class="arr">→</span></button>
+    <p class="status" id="status" role="status"></p>
+  </form>
+</section>
+</main>
+
+<footer>
+  <span>Higher Rank · Concept preview</span>
+  <span>Contact details: placeholder</span>
+</footer>
+
+<script>
+/* ============ J0 HELPERS ============ */
+const $ = s => document.querySelector(s);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pad = n => String(n).padStart(2, '0');
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const smooth = t => t * t * (3 - 2 * t);
+
+/* ============ J1 RANK LIST ============ */
+function makeList(el, labels, opt = {}) {
+  const rows = labels.map((t, i) => {
+    const li = document.createElement('li');
+    li.className = 'row'; li.dataset.id = i;
+    const n = document.createElement('span'); n.className = 'n';
+    const s = document.createElement('span'); s.className = 't'; s.textContent = t;
+    li.append(n, s); el.appendChild(li); return li;
+  });
+  let order = labels.map((_, i) => i), rh = 0;
+  const api = {
+    rows, cutOn: false,
+    get order() { return order; },
+    set(o) { order = o.slice(); paint(); },
+    raise(id) { const p = order.indexOf(id); if (p > 0) { [order[p - 1], order[p]] = [order[p], order[p - 1]]; paint(); } },
+    measure() { rh = rows[0].offsetHeight; el.style.height = rh * rows.length + 'px'; paint(); }
+  };
+  function paint() {
+    order.forEach((id, pos) => {
+      const r = rows[id];
+      r.style.transform = 'translateY(' + pos * rh + 'px)';
+      r.firstChild.textContent = pad(pos + 1);
+      r.classList.toggle('top', pos === 0);
+      r.classList.toggle('cut', opt.cut != null && api.cutOn && pos >= opt.cut);
+    });
+  }
+  api.measure();
+  addEventListener('resize', api.measure);
+  return api;
+}
+
+/* ============ J2 HERO: auto climb + attention raises rank ============ */
+const heroEl = $('#heroList');
+const hero = makeList(heroEl, ['The inbox', "A competitor's ad", 'The group chat', 'Breaking news', 'A sale somewhere else', 'The next video',
+  'A calendar alert', "Someone else's reviews", 'The result above yours', "Last week's promise", 'A cheaper option', 'Your brand']);
+const BRAND = 11; let touched = false, dwell, held = false;
+hero.rows[BRAND].classList.add('you');
+hero.rows.forEach(r => r.tabIndex = 0);
+if (RM) hero.set([BRAND, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+else setTimeout(function step() { if (!touched && hero.order.indexOf(BRAND) > 0) { hero.raise(BRAND); setTimeout(step, 150); } }, 900);
+function arm(e) {
+  clearTimeout(dwell);
+  const r = e.target.closest('.row'); if (!r) return;
+  dwell = setTimeout(function go() { touched = true; hero.raise(+r.dataset.id); if (held) dwell = setTimeout(go, 380); }, 380);
+}
+heroEl.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') arm(e); });
+heroEl.addEventListener('pointerdown', e => { held = e.pointerType !== 'mouse'; arm(e); });
+['pointerleave', 'pointerup', 'pointercancel'].forEach(ev => heroEl.addEventListener(ev, () => { held = false; clearTimeout(dwell); }));
+heroEl.addEventListener('keydown', e => {
+  const r = e.target.closest('.row');
+  if (r && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowUp')) { e.preventDefault(); touched = true; hero.raise(+r.dataset.id); }
+});
+
+/* ============ J3 MARKETING: scroll climbs the brand ============ */
+const mkt = makeList($('#mktList'), ['A louder competitor', 'The marketplace listing', "An influencer's pick", 'The comparison site',
+  'A national chain', "Yesterday's trend", 'The sponsored result', 'Your brand']);
+mkt.rows[7].classList.add('you');
+const MKT = [
+  [7, 'Today', 'Good work, hard to find. Most of the people who would buy from you never see you.'],
+  [5, 'Search', 'We get you found when someone searches for what you sell.'],
+  [4, 'Content and social', 'We give people a reason to stop, look and remember your name.'],
+  [2, 'Paid campaigns', 'We put your offer in front of the right audience and stop paying for the wrong one.'],
+  [1, 'Leads and email', 'We turn a visit into a conversation, and we follow it up.'],
+  [0, 'Measurement', 'We track what worked and move the budget there. That is how you stay at the top.']
+];
+let mktStep = -1;
+function mktUpdate(p) {
+  const s = Math.min(MKT.length - 1, Math.floor(p * MKT.length)); if (s === mktStep) return; mktStep = s;
+  const o = [0, 1, 2, 3, 4, 5, 6]; o.splice(MKT[s][0], 0, 7); mkt.set(o);
+  setCap('#mktCap', MKT[s][1], MKT[s][2]);
+}
+function setCap(sel, label, text) {
+  const el = $(sel); el.textContent = '';
+  const b = document.createElement('b'); b.textContent = label; el.append(b, text);
+}
+
+/* ============ J4 CONSULTING: scroll sorts the priorities ============ */
+const con = makeList($('#conList'), ['Fix the leaky handoff', 'Price for real margin', 'One owner per decision', 'One weekly number',
+  'Hire for the bottleneck', 'The surprise reorg', 'A sixth software tool', 'Meetings about meetings'], { cut: 5 });
+const conStates = (() => {
+  let cur = [6, 2, 7, 0, 5, 3, 1, 4]; const out = [cur.slice()];
+  for (let k = 0; k < 8; k++) { const i = cur.indexOf(k); if (i !== k) { cur.splice(i, 1); cur.splice(k, 0, k); out.push(cur.slice()); } }
+  return out;
+})();
+const CON = [
+  ['Strategy', 'Everything feels urgent, so nothing is first. We help you decide what matters most.'],
+  ['Execution', 'Each priority gets one owner, one deadline and one number to watch.'],
+  ['Operations', 'We find what slows the work and remove it. Some things on the list simply stop.']
+];
+let conIdx = -1, conCap = -1;
+function conUpdate(p) {
+  const i = Math.min(conStates.length - 1, Math.floor(p * 1.25 * conStates.length));
+  const cut = p > 0.84;
+  if (i !== conIdx || cut !== con.cutOn) { conIdx = i; con.cutOn = cut; con.set(conStates[i]); $('#cutline').classList.toggle('on', cut); }
+  const c = Math.min(2, Math.floor(p * 3)); if (c !== conCap) { conCap = c; setCap('#conCap', CON[c][0], CON[c][1]); }
+}
+
+/* ============ J5 EVENTS: roster becomes three mixed tables ============ */
+const room = $('#room');
+const ROLES = ['Customer', 'Prospect', 'Partner', 'Press', 'Creator', 'Your team'];
+const chips = [], rings = [];
+for (let t = 0; t < 3; t++) { const r = document.createElement('div'); r.className = 'ring'; r.textContent = 'Table ' + (t + 1); room.appendChild(r); rings.push(r); }
+for (let i = 0; i < 18; i++) {
+  const c = document.createElement('div'); const role = Math.floor(i / 3);
+  c.className = 'chip' + (role === 5 ? ' team' : '');
+  const s = document.createElement('span'); s.textContent = ROLES[role]; c.appendChild(s);
+  room.appendChild(c); chips.push(c);
+}
+const EVT = [
+  ['Plan', 'A guest list is only names in groups. We start with why each person should be there.'],
+  ['Produce', 'We handle the venue, the staging and the run of show, so the room works.'],
+  ['Follow up', 'Every table gets a customer, a partner and a voice that carries it further. Then we keep those conversations going.']
+];
+let evtP = 0, evtCap = -1;
+function evtUpdate(p) {
+  evtP = p;
+  const W = room.clientWidth, H = room.clientHeight, cw = W / 3 - 8, rad = W * 0.16;
+  const centers = [[W * 0.26, H * 0.28], [W * 0.74, H * 0.28], [W * 0.5, H * 0.74]];
+  chips.forEach((c, i) => {
+    const role = Math.floor(i / 3), col = i % 3;
+    const q = smooth(clamp(p * 1.5 - i * 0.02));
+    const x0 = col * W / 3 + 4, y0 = role * H / 6 + (H / 6 - 28) / 2;
+    const a = role / 6 * Math.PI * 2 - Math.PI / 2;
+    const x1 = centers[col][0] + rad * Math.cos(a) - 8, y1 = centers[col][1] + rad * Math.sin(a) - 8;
+    c.style.transform = 'translate(' + (x0 + (x1 - x0) * q) + 'px,' + (y0 + (y1 - y0) * q) + 'px)';
+    c.style.width = cw + (16 - cw) * q + 'px';
+    c.style.height = 28 + (16 - 28) * q + 'px';
+    c.firstChild.style.opacity = clamp(1 - q * 2.5);
+  });
+  const ro = clamp((p - 0.55) / 0.25), d = (rad + 22) * 2;
+  rings.forEach((r, t) => { r.style.width = r.style.height = d + 'px'; r.style.left = centers[t][0] - d / 2 + 'px'; r.style.top = centers[t][1] - d / 2 + 'px'; r.style.opacity = ro; });
+  const c = Math.min(2, Math.floor(p * 3)); if (c !== evtCap) { evtCap = c; setCap('#evtCap', EVT[c][0], EVT[c][1]); }
+}
+
+/* ============ J6 SCROLL ENGINE + RANK COUNTER ============ */
+const scenes = [['#marketing', mktUpdate], ['#consulting', conUpdate], ['#events', evtUpdate]].map(([s, fn]) => ({ el: $(s), fn, last: -1 }));
+const rk = $('#rk'); let ticking = false;
+function tick() {
+  ticking = false;
+  const vh = innerHeight;
+  scenes.forEach(s => {
+    const r = s.el.getBoundingClientRect();
+    const p = clamp(-r.top / (r.height - vh));
+    if (p !== s.last) { s.last = p; s.el.style.setProperty('--p', p.toFixed(4)); s.fn(p); }
+  });
+  const max = document.documentElement.scrollHeight - vh;
+  const tp = max > 0 ? clamp(scrollY / max) : 0;
+  rk.textContent = Math.max(1, Math.round(Math.pow(1000, 1 - tp))).toLocaleString('en-US');
+}
+function queue() { if (!ticking) { ticking = true; requestAnimationFrame(tick); } }
+addEventListener('scroll', queue, { passive: true });
+addEventListener('resize', () => { scenes.forEach(s => s.last = -1); queue(); });
+tick();
+
+/* ============ J7 LIGHT, NAV, FORM ============ */
+addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse') return;
+  document.documentElement.style.setProperty('--mx', e.clientX + 'px');
+  document.documentElement.style.setProperty('--my', e.clientY + 'px');
+}, { passive: true });
+document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+  const t = $(a.getAttribute('href')); if (!t) return;
+  e.preventDefault(); t.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'start' });
+}));
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  $('#status').textContent = 'Concept preview: this form is not connected yet, so nothing was sent.';
+});
+</script>
+</body>
+</html>
