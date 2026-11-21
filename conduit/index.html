@@ -10,9 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#05070a; --bg-2:#0a0e14;
+  --bg:#02050a; --bg-2:#060b13;
   --ink:#e9ecf1; --ink-2:#8a929f; --ink-3:#4d5664;
-  --ember:#ff9a3c; --ember-hot:#ffd9a0; --cool:#9fd4ff;
+  --ember:#3fd8ff; --ember-hot:#c6f3ff; --cool:#8fb6ff;
   --line:rgba(233,236,241,.14); --line-2:rgba(233,236,241,.07);
   --display:'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -134,7 +134,7 @@ canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:
   border-top:1px solid currentColor;border-right:1px solid currentColor;transform:rotate(45deg)}
 .cta::before{content:'';position:absolute;inset:0;background:var(--ember);
   transform:translateY(101%);transition:transform .5s var(--ease)}
-.cta:hover,.cta:focus-visible{color:#0a0704;border-color:var(--ember);outline:none}
+.cta:hover,.cta:focus-visible{color:#031219;border-color:var(--ember);outline:none}
 .cta:hover::before,.cta:focus-visible::before{transform:translateY(0)}
 .cta:hover .ar{width:26px}
 
@@ -149,7 +149,7 @@ canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:
 #contact.on .card{transform:none}
 #contact h3{font-size:clamp(24px,2.7vw,34px);font-weight:600;letter-spacing:-.035em;margin-bottom:.45em}
 #contact .note{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ember);border:1px solid rgba(255,154,60,.3);border-radius:3px;padding:7px 10px;
+  color:var(--ember);border:1px solid rgba(63,216,255,.32);border-radius:3px;padding:7px 10px;
   display:inline-block;margin-bottom:1.7em}
 #contact label{display:block;margin-bottom:16px}
 #contact .lb{font-family:var(--mono);font-size:10px;letter-spacing:.19em;text-transform:uppercase;
@@ -157,7 +157,7 @@ canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:
 #contact input,#contact textarea{width:100%;background:rgba(233,236,241,.035);border:1px solid var(--line-2);
   border-radius:3px;padding:12px 13px;color:var(--ink);font-family:var(--display);font-size:14.5px;
   transition:border-color .35s var(--ease),background .35s var(--ease)}
-#contact input:focus,#contact textarea:focus{outline:none;border-color:rgba(255,154,60,.5);background:rgba(233,236,241,.06)}
+#contact input:focus,#contact textarea:focus{outline:none;border-color:rgba(63,216,255,.55);background:rgba(233,236,241,.06)}
 #contact textarea{resize:vertical;min-height:88px}
 #contact .acts{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}
 #contact .ghost{appearance:none;background:none;border:0;color:var(--ink-3);cursor:pointer;
@@ -176,7 +176,7 @@ canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block;z-index:
 #work.on{opacity:1;visibility:visible}
 #work .list{width:min(820px,100%)}
 #work .ph{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ember);border:1px solid rgba(255,154,60,.3);border-radius:3px;padding:7px 10px;
+  color:var(--ember);border:1px solid rgba(63,216,255,.32);border-radius:3px;padding:7px 10px;
   display:inline-block;margin-bottom:1.9em}
 #work .it{display:flex;justify-content:space-between;align-items:baseline;gap:20px;
   padding:19px 0;border-top:1px solid var(--line-2)}
@@ -200,10 +200,10 @@ body.fallback #fb{display:block}
 body.fallback{overflow-y:auto}
 #fb .hero{min-height:88vh;padding-top:13vh;display:flex;flex-direction:column;justify-content:center;max-width:1100px;margin:0 auto}
 #fb .ring{width:clamp(130px,17vw,210px);aspect-ratio:1;border-radius:50%;margin-bottom:clamp(34px,5vw,60px);
-  border:1px solid rgba(255,154,60,.42);position:relative;
-  background:radial-gradient(circle at 50% 50%,rgba(255,217,160,.5),rgba(255,154,60,.14) 42%,transparent 68%)}
+  border:1px solid rgba(63,216,255,.45);position:relative;
+  background:radial-gradient(circle at 50% 50%,rgba(198,243,255,.52),rgba(63,216,255,.16) 42%,transparent 68%)}
 #fb .ring::before,#fb .ring::after{content:'';position:absolute;inset:-17%;border-radius:50%;
-  border:1px solid var(--line-2);border-top-color:rgba(159,212,255,.26)}
+  border:1px solid var(--line-2);border-top-color:rgba(143,182,255,.28)}
 #fb .ring::after{inset:-34%;transform:rotate(38deg)}
 #fb h1{font-size:clamp(40px,7.6vw,104px);font-weight:700;letter-spacing:-.05em;line-height:.92;margin-bottom:.4em}
 #fb .lede{font-size:clamp(15px,1.5vw,20px);line-height:1.55;color:var(--ink-2);max-width:42ch;margin-bottom:2.4em}
@@ -224,6 +224,13 @@ body.fallback{overflow-y:auto}
   #p3{bottom:16vh}
   #end .row{gap:20px}
 }
+#veil{position:fixed;left:0;top:0;bottom:0;width:66vw;z-index:4;pointer-events:none;opacity:0;
+  background:linear-gradient(to right,rgba(2,5,10,.97) 0%,rgba(2,5,10,.90) 26%,rgba(2,5,10,.58) 56%,rgba(2,5,10,0) 100%);
+  transition:opacity .75s var(--ease)}
+#veil.on{opacity:1}
+#veil.right{left:auto;right:0;
+  background:linear-gradient(to left,rgba(2,5,10,.97) 0%,rgba(2,5,10,.90) 26%,rgba(2,5,10,.58) 56%,rgba(2,5,10,0) 100%)}
+@media(max-width:860px){#veil{display:none}}
 #scrim{position:fixed;left:0;right:0;bottom:0;height:70vh;z-index:4;pointer-events:none;opacity:0;display:none;
   background:linear-gradient(to top,rgba(4,6,10,.97) 14%,rgba(4,6,10,.82) 40%,rgba(4,6,10,.38) 68%,transparent 100%);
   transition:opacity .7s var(--ease)}
@@ -277,6 +284,7 @@ body.fallback{overflow-y:auto}
   </div>
 </nav>
 
+<div id="veil" aria-hidden="true"></div>
 <div id="scrim" aria-hidden="true"></div>
 <div class="hud" id="scale" aria-hidden="true"></div>
 
@@ -600,7 +608,7 @@ layout(location=0) in vec2 aCorner;
 layout(location=1) in vec4 aSeed;
 uniform mat4 uVP; uniform vec3 uCamR; uniform vec3 uCamU; uniform vec3 uCam;
 uniform sampler2D uCurve; uniform vec2 uCurveDim;
-uniform float uTime; uniform float uEnergy; uniform float uShed; uniform float uScale;
+uniform float uTime; uniform float uEnergy; uniform float uShed; uniform float uScale; uniform float uBand;
 uniform mat4 uModel;
 out float vGlow; out vec2 vC; out float vTone;
 vec3 curveAt(float idx,float t){
@@ -613,11 +621,11 @@ vec3 curveAt(float idx,float t){
 }
 void main(){
   float idx=aSeed.x, t0=aSeed.y, spd=aSeed.z, kind=aSeed.w;
-  float t=fract(t0+uTime*spd*(0.35+uEnergy*0.95));
-  float tw=fract(t+0.085*sin(TAU*t));
+  float local=fract(t0+uTime*spd*(0.35+uEnergy*0.95));
+  float tw=fract(uBand-0.22+0.44*local);
   vec3 p=curveAt(idx,tw);
-  float nodeT=max(cos(TAU*tw),0.0);
-  float glow=0.55+2.1*pow(nodeT,9.0);
+  float nodeT=max(cos(TAU*fract((p.y-19.0)*0.1)),0.0);
+  float glow=0.50+2.3*pow(nodeT,10.0);
   float shed=step(0.62,kind)*uShed;
   if(shed>0.0){
     float ph=fract(t0*7.31+uTime*0.09);
@@ -862,125 +870,150 @@ function buildFaceted(r,sub){
   return {pos:new Float32Array(pos),nor:new Float32Array(nor),count:pos.length/3};
 }
 
-/* ================= THE CONDUIT — sculpture definition ================= */
-const HC=2.30;                 // collar height
-const curves=[];              // particle-carrying curves
+/* ================= THE CONDUIT — a structure you descend ================= */
+const TOP=26, BOT=-26, CORE_Y=19.0, TERM_Y=-21.0;
+const NODE_Y=[19.0, 9.0, -1.0, -11.0, -21.0];
+const yAt=t=>lerp(TOP,BOT,t);
+const curves=[];                 // particle-carrying curves
 
 function cableCurve(i,n){
-  const a0=i/n*TAU+0.21, sweep=(i%3===0?0.98:i%3===1?0.38:-0.70)*(i%2?1:-1);
-  const bulge=1.22+0.26*Math.sin(i*2.1)+0.11*Math.cos(i*3.7);
-  const tilt=0.16*Math.sin(i*1.7);
+  const a0=i/n*TAU, dir=i%2?1:-1;
+  const turns=3.05+((i*0.37)%1)*0.55;
+  const r0=1.12+((i*0.53)%1)*0.34;
   return t=>{
-    const y=-HC*0.98+t*HC*1.96;
-    const rad=0.34+Math.pow(Math.sin(Math.PI*t),0.62)*bulge;
-    const a=a0+(t-0.5)*sweep+tilt*Math.sin(Math.PI*2*t);
-    return V(Math.cos(a)*rad,y+0.10*Math.sin(Math.PI*t*2)*Math.sin(i),Math.sin(a)*rad);
+    const a=a0+dir*t*turns*TAU;
+    const rad=r0+0.20*Math.sin(t*Math.PI*3.0+i);
+    return V(Math.cos(a)*rad,yAt(t),Math.sin(a)*rad);
   };
 }
 function conduitCurve(i,n){
-  const dir=i%2?1:-1;
-  const turns=(0.62+((i*0.37)%1)*1.55)*dir;
-  const r0=1.30+((i*0.53)%1)*0.56;
-  const y0=-HC*0.86+((i*0.29)%1)*0.5, y1=HC*0.86-((i*0.61)%1)*0.5;
-  const a0=i/n*TAU*1.37;
-  const wob=0.16+0.12*((i*0.71)%1);
+  const a0=i/n*TAU*1.7, dir=(i%3)?1:-1;
+  const turns=(1.95+((i*0.41)%1)*2.55)*dir;
+  const r0=1.92+((i*0.61)%1)*1.08;
   return t=>{
     const a=a0+t*turns*TAU;
-    const rad=r0+wob*Math.sin(t*Math.PI*(2+i%3));
-    return V(Math.cos(a)*rad,lerp(y0,y1,t),Math.sin(a)*rad);
+    const rad=r0+0.26*Math.sin(t*Math.PI*(2+i%4)+i);
+    return V(Math.cos(a)*rad,yAt(t),Math.sin(a)*rad);
   };
 }
 function filamentCurve(i,n){
-  const s1=i*2.399963, s2=i*4.7+1.3;
-  const th1=(i*0.7351)%1*Math.PI, th2=((i*0.4127)%1)*Math.PI;
-  const R=1.70+((i*0.313)%1)*0.35;
-  const A=V(Math.sin(th1)*Math.cos(s1)*R,Math.cos(th1)*R*1.12,Math.sin(th1)*Math.sin(s1)*R);
-  const B=V(Math.sin(th2)*Math.cos(s2)*R,-Math.cos(th2)*R*1.12,Math.sin(th2)*Math.sin(s2)*R);
-  const off=0.14+((i*0.191)%1)*0.5;
-  const perp=vnorm(vcross(vsub(B,A),V(0,1,0.13)));
+  const a0=i/n*TAU*2.3, dir=i%2?1:-1;
+  const turns=(0.22+((i*0.29)%1)*0.52)*dir;
+  const r0=0.52+((i*0.47)%1)*3.05;
   return t=>{
-    const base=vlerp(A,B,t);
-    const bow=Math.sin(Math.PI*t)*off;
-    return vadd(base,vmul(perp,bow));
+    const a=a0+t*turns*TAU;
+    const rad=r0+0.46*Math.sin(t*Math.PI*1.3+i);
+    return V(Math.cos(a)*rad,yAt(t),Math.sin(a)*rad);
   };
 }
-function knotCurve(p,q,s,phase,tiltX,tiltZ){
+function arcCurve(y,R,tilt,phase){
+  const c=Math.cos(tilt), sn=Math.sin(tilt);
+  return t=>{
+    const a=t*TAU+phase, x=Math.cos(a)*R, z=Math.sin(a)*R;
+    return V(x,y+z*sn,z*c);
+  };
+}
+function knotCurve(p,q,s,phase,tiltX,tiltZ,cy){
   const cx=Math.cos(tiltX),sx=Math.sin(tiltX),cz=Math.cos(tiltZ),sz=Math.sin(tiltZ);
   return t=>{
     const u=t*TAU+phase, rr=(2+Math.cos(q*u))*s;
-    let x=rr*Math.cos(p*u), y=rr*Math.sin(p*u), z=Math.sin(q*u)*s*1.25;
-    let y2=y*cx-z*sx, z2=y*sx+z*cx;
-    let x2=x*cz-y2*sz, y3=x*sz+y2*cz;
-    return V(x2,y3,z2);
+    const x=rr*Math.cos(p*u), y=rr*Math.sin(p*u), z=Math.sin(q*u)*s*1.25;
+    const y2=y*cx-z*sx, z2=y*sx+z*cx;
+    return V(x*cz-y2*sz,(x*sz+y2*cz)+cy,z2);
   };
 }
 
 function buildSculpture(q){
   const G={};
-  /* --- armature: ribs + collars + nodes --- */
-  const arm=Mesh();
-  for(let i=0;i<6;i++){
-    const a0=i/6*TAU;
-    buildTube(arm,t=>{
-      const y=-HC+t*HC*2;
-      const rad=0.40+Math.pow(Math.sin(Math.PI*t),0.72)*1.04;
-      const a=a0+Math.sin(Math.PI*t)*0.30;
-      return V(Math.cos(a)*rad,y,Math.sin(a)*rad);
-    },q.rib,q.radial,t=>0.030+Math.sin(Math.PI*t)*0.038,5.0);
-  }
-  buildTorus(arm,0.42,0.072,q.ring,Math.max(7,q.radial-1),HC);
-  buildTorus(arm,0.42,0.072,q.ring,Math.max(7,q.radial-1),-HC);
-  buildTorus(arm,0.60,0.034,q.ring,7,HC*0.78);
-  buildTorus(arm,0.60,0.034,q.ring,7,-HC*0.78);
-  for(let i=0;i<6;i++){
-    const a0=i/6*TAU;
-    for(const t of [0.20,0.50,0.80]){
-      const y=-HC+t*HC*2, rad=0.40+Math.pow(Math.sin(Math.PI*t),0.72)*1.04, a=a0+Math.sin(Math.PI*t)*0.30;
-      const rr=t===0.50?0.118:0.092;
-      buildSphere(arm,Math.cos(a)*rad,y,Math.sin(a)*rad,rr,q.node,q.node*2,false);
-    }
-  }
-  G.arm=arm;
 
-  /* --- cables --- */
-  const cab=Mesh(); const NC=q.cables;
-  for(let i=0;i<NC;i++){
-    const fn=cableCurve(i,NC);
-    buildTube(cab,fn,q.cable,q.radial,t=>0.031+Math.sin(Math.PI*t)*0.015,7.0);
+  /* --- the spine: three gauges of wire running the whole descent --- */
+  const cab=Mesh();
+  for(let i=0;i<q.cables;i++){
+    const fn=cableCurve(i,q.cables);
+    buildTube(cab,fn,q.cable,q.radial,t=>0.050+0.012*Math.sin(Math.PI*t*4.0),34.0);
     curves.push(fn);
   }
   G.cab=cab;
 
-  /* --- conduits --- */
-  const con=Mesh(); const NK=q.conduits;
-  for(let i=0;i<NK;i++){
-    const fn=conduitCurve(i,NK);
-    buildTube(con,fn,q.conduit,Math.max(6,q.radial-2),t=>0.0195+0.0080*Math.sin(Math.PI*t),9.0);
+  const con=Mesh();
+  for(let i=0;i<q.conduits;i++){
+    const fn=conduitCurve(i,q.conduits);
+    buildTube(con,fn,q.conduit,Math.max(6,q.radial-2),()=>0.0255,46.0);
     curves.push(fn);
   }
   G.con=con;
 
-  /* --- filaments --- */
-  const fil=Mesh(); const NF=q.filaments;
-  for(let i=0;i<NF;i++){
-    const fn=filamentCurve(i,NF);
-    buildTube(fil,fn,q.filament,5,t=>0.0118+0.0050*Math.sin(Math.PI*t),14.0);
+  const fil=Mesh();
+  for(let i=0;i<q.filaments;i++){
+    const fn=filamentCurve(i,q.filaments);
+    buildTube(fil,fn,q.filament,5,()=>0.0115,64.0);
     curves.push(fn);
   }
   G.fil=fil;
 
-  /* --- luminous inner structure --- */
+  /* --- armature: tunnel ribs, wide outer arcs, node collars --- */
+  const arm=Mesh();
+  for(let y=-24;y<=24;y+=4){
+    const k=y*0.137;
+    buildTube(arm,arcCurve(y,2.46+0.10*Math.sin(k),0.07*Math.sin(k*1.7),k),q.ring,8,()=>0.040,9.0);
+  }
+  const ARCS=[[15.0,4.00,0.26,0.4],[3.0,4.50,-0.21,2.1],[-9.0,4.10,0.30,3.6],[-19.0,4.60,-0.17,5.2]];
+  for(const[y,R,ti,ph] of ARCS)
+    buildTube(arm,arcCurve(y,R,ti,ph),q.arc,8,()=>0.055,16.0);
+  for(const y of NODE_Y){
+    buildTube(arm,arcCurve(y+0.34,1.56,0,0),q.ring,8,()=>0.058,7.0);
+    buildTube(arm,arcCurve(y-0.34,1.56,0,0),q.ring,8,()=>0.058,7.0);
+    buildTube(arm,arcCurve(y,1.28,0,0),q.ring,7,()=>0.034,7.0);
+    for(let i=0;i<6;i++){
+      const a=i/6*TAU+y*0.21;
+      buildSphere(arm,Math.cos(a)*1.56,y,Math.sin(a)*1.56,0.098,q.node,q.node*2,false);
+    }
+  }
+  /* core cages, top and bottom */
+  for(const cy of [CORE_Y,TERM_Y]){
+    for(let i=0;i<6;i++){
+      const a0=i/6*TAU;
+      buildTube(arm,t=>{
+        const yy=cy-1.30+t*2.60;
+        const rad=0.30+Math.pow(Math.sin(Math.PI*t),0.72)*1.16;
+        const a=a0+Math.sin(Math.PI*t)*0.30;
+        return V(Math.cos(a)*rad,yy,Math.sin(a)*rad);
+      },q.cage,q.radial,t=>0.030+Math.sin(Math.PI*t)*0.034,5.0);
+    }
+  }
+  /* terminus: a wide ring with cables converging into it */
+  buildTube(arm,arcCurve(TERM_Y,3.70,0.05,0.9),q.ring,8,()=>0.090,12.0);
+  for(let i=0;i<8;i++){
+    const a0=i/8*TAU+0.2;
+    buildTube(arm,t=>{
+      const rad=lerp(3.70,0.42,smooth(t));
+      const a=a0+t*0.55;
+      return V(Math.cos(a)*rad,lerp(TERM_Y+5.4,TERM_Y-1.1,t),Math.sin(a)*rad);
+    },q.cage,8,t=>0.030+0.016*Math.sin(Math.PI*t),8.0);
+  }
+  G.arm=arm;
+
+  /* --- luminous: node rings, core coils, nuclei --- */
+  const rings=Mesh();
+  for(const y of NODE_Y) buildTube(rings,arcCurve(y,1.41,0,0),q.ring,7,()=>0.026,7.0);
+  G.rings=rings;
+
   const coil=Mesh();
-  buildTube(coil,knotCurve(2,5,0.236,0,0.42,0.20),q.coil,9,()=>0.042,8.0);
-  buildTube(coil,knotCurve(3,7,0.146,1.1,-0.55,0.9),Math.round(q.coil*0.9),8,()=>0.026,8.0);
+  for(const cy of [CORE_Y,TERM_Y]){
+    buildTube(coil,knotCurve(2,5,0.196,0,0.42,0.20,cy),q.coil,9,()=>0.034,8.0);
+    buildTube(coil,knotCurve(3,7,0.122,1.1,-0.55,0.9,cy),Math.round(q.coil*0.9),8,()=>0.021,8.0);
+  }
   G.coil=coil;
 
   const nuc=Mesh();
-  buildSphere(nuc,0,0,0,0.175,q.node+4,(q.node+4)*2,false);
+  for(const cy of [CORE_Y,TERM_Y]) buildSphere(nuc,0,cy,0,0.150,q.node+4,(q.node+4)*2,false);
   G.nuc=nuc;
 
-  const shell=Mesh(); buildSphere(shell,0,0,0,1.06,q.shellSub?40:26,q.shellSub?80:52,false);
+  const shell=Mesh();
+  for(const cy of [CORE_Y,TERM_Y])
+    buildSphere(shell,0,cy,0,0.84,q.shellSub?36:24,q.shellSub?72:48,false);
   G.shell=shell;
+
   return G;
 }
 </script>
@@ -1132,17 +1165,17 @@ function placeholderCanvas(i){
   const c=document.createElement('canvas'); c.width=1024; c.height=576;
   const x=c.getContext('2d');
   const g=x.createLinearGradient(0,0,0,576);
-  g.addColorStop(0,'#2b3747'); g.addColorStop(0.55,'#1b2432'); g.addColorStop(1,'#121a26');
+  g.addColorStop(0,'#24323f'); g.addColorStop(0.55,'#17212c'); g.addColorStop(1,'#101922');
   x.fillStyle=g; x.fillRect(0,0,1024,576);
   x.save(); x.globalAlpha=0.55; x.strokeStyle='#3a4759'; x.lineWidth=1;
   for(let k=-600;k<1200;k+=26){ x.beginPath(); x.moveTo(k,0); x.lineTo(k+576,576); x.stroke(); }
   x.restore();
   const rg=x.createRadialGradient(512,300,0,512,300,470);
-  rg.addColorStop(0,'rgba(255,154,60,0.34)'); rg.addColorStop(1,'rgba(255,154,60,0)');
+  rg.addColorStop(0,'rgba(63,216,255,0.30)'); rg.addColorStop(1,'rgba(63,216,255,0)');
   x.fillStyle=rg; x.fillRect(0,0,1024,576);
   x.strokeStyle='rgba(233,236,241,0.42)'; x.lineWidth=3; x.strokeRect(30,30,964,516);
   x.textAlign='center';
-  x.fillStyle='#ffc890'; x.font='500 26px "IBM Plex Mono", monospace';
+  x.fillStyle='#9fe9ff'; x.font='500 26px "IBM Plex Mono", monospace';
   x.fillText('P L A C E H O L D E R',512,206);
   x.fillStyle='#ffffff'; x.font='700 112px Archivo, Helvetica, Arial, sans-serif';
   x.fillText('SLOT '+SLOT_LABEL[i][0],512,334);
@@ -1220,38 +1253,40 @@ void main(){
 <script>
 /* ================= choreography ================= */
 const CAM=[
- {s:0.0 ,r:11.00,az:0.35,el:0.030,ty:0.22,fov:30,ox:0.00},
- {s:1.5 ,r:10.00,az:0.95,el:0.195,ty:0.05,fov:32,ox:0.12},
- {s:3.2 ,r:10.50,az:1.85,el:-0.26,ty:-0.08,fov:30,ox:-0.18},
- {s:5.0 ,r:10.20,az:2.80,el:0.105,ty:0.05,fov:32,ox:0.14},
- {s:6.4 ,r:5.60,az:3.55,el:0.330,ty:0.62,fov:44,ox:0.00},
- {s:7.9 ,r:11.00,az:4.35,el:0.210,ty:0.00,fov:30,ox:0.00},
- {s:10.0,r:13.00,az:5.25,el:0.140,ty:0.02,fov:28,ox:0.30}
+ {s:0.0 ,r:8.60,az:0.30,el:0.045,ty: 19.2,fov:33,ox: 0.00},
+ {s:1.5 ,r:9.20,az:0.88,el:0.130,ty: 15.2,fov:35,ox: 0.10},
+ {s:3.0 ,r:8.30,az:1.62,el:0.020,ty:  9.4,fov:36,ox: 0.22},
+ {s:4.4 ,r:8.80,az:2.34,el:-0.055,ty: 3.4,fov:35,ox:-0.10},
+ {s:5.9 ,r:8.10,az:3.06,el:0.075,ty: -2.8,fov:36,ox:-0.22},
+ {s:7.3 ,r:8.90,az:3.80,el:0.040,ty: -9.6,fov:35,ox: 0.12},
+ {s:8.5 ,r:9.40,az:4.42,el:0.095,ty:-15.4,fov:34,ox: 0.22},
+ {s:10.0,r:11.60,az:5.10,el:0.150,ty:-21.2,fov:32,ox:0.30}
 ];
 const K=(s,x,y,z,sz,op,fo,ti)=>({s,x,y,z,sz,op,fo,ti});
 const WIN=[
- [ K(1.15, 6.20, 0.60, 1.80,1.50,0.00,0.00, 0.55),
-   K(1.85, 3.90, 0.35, 0.40,1.70,1.00,0.30, 0.40),
-   K(2.85, 3.00, 0.10,-1.80,1.85,1.00,1.00, 0.14),
-   K(3.95, 0.70,-0.45, 2.40,1.75,1.00,0.35,-0.26),
-   K(4.75,-1.70,-0.85, 3.90,1.60,0.90,0.10,-0.52),
-   K(6.25,-4.20, 0.60, 2.80,1.45,0.65,0.05,-0.70),
-   K(7.15,-5.60, 1.20, 2.80,1.30,0.55,0.08,-0.60),
-   K(7.95,-3.10, 1.05, 1.20,1.80,1.00,0.55, 0.42),
-   K(10.0,-1.25, 2.00, 1.30,1.70,1.00,0.70, 0.40) ],
- [ K(3.25,-1.20,-0.25, 3.40,1.15,0.00,0.00,-0.80),
-   K(3.90,-1.95,-0.20, 2.30,1.45,1.00,0.16,-0.60),
-   K(4.60,-2.55,-0.05, 0.40,1.65,1.00,0.60,-0.34),
-   K(5.25,-2.90, 0.05,-1.80,1.85,1.00,1.00,-0.16),
-   K(6.40,-3.40, 1.10, 1.30,1.50,1.00,0.30,-0.40),
-   K(7.20,-1.30, 0.75, 3.60,1.40,0.42,0.12,-0.35),
-   K(7.95, 2.95,-1.15, 0.80,1.80,1.00,0.60,-0.30),
-   K(10.0, 1.32,-1.58, 0.30,1.85,1.00,0.80,-0.26) ],
- [ K(5.65, 1.00, 4.60, 1.50,1.20,0.00,0.00, 0.30),
-   K(6.30, 1.20, 2.30, 0.70,1.50,1.00,0.30, 0.22),
-   K(7.15, 2.90, 0.15,-1.65,1.65,1.00,1.00, 0.08),
-   K(8.15, 1.10, 1.90, 2.20,1.60,1.00,0.50, 0.14),
-   K(10.0, 1.52, 1.40, 2.30,1.60,1.00,0.62, 0.16) ]
+ [ K(1.30, 5.20, 0.45, 1.60,2.00,0.00,0.00, 0.44),
+   K(2.10, 2.90, 0.25, 0.30,2.25,1.00,0.40, 0.26),
+   K(2.95, 0.27, 0.03,-5.00,1.23,1.00,1.00, 0.04),
+   K(3.80,-1.90,-0.25, 0.70,2.25,1.00,0.40,-0.24),
+   K(4.70,-4.60,-0.55, 2.40,1.95,0.55,0.10,-0.46),
+   K(5.50,-6.80,-0.30, 3.20,1.80,0.00,0.05,-0.56),
+   K(8.70, 0.10, 1.85, 1.10,1.75,0.00,0.30, 0.24),
+   K(9.30, 0.35, 1.78, 0.70,1.80,1.00,0.66, 0.22),
+   K(10.0, 0.45, 1.72, 0.60,1.85,1.00,0.74, 0.20) ],
+ [ K(4.30,-5.00, 0.50, 2.20,2.00,0.00,0.00,-0.44),
+   K(5.05,-2.70, 0.25, 0.50,2.25,1.00,0.40,-0.26),
+   K(5.85,-0.10, 0.03,-5.00,1.23,1.00,1.00,-0.04),
+   K(6.65, 2.10,-0.25, 0.80,2.25,1.00,0.40, 0.24),
+   K(7.40, 4.80,-0.55, 2.60,1.95,0.50,0.10, 0.46),
+   K(8.10, 7.00,-0.30, 3.20,1.80,0.00,0.05, 0.56),
+   K(8.80, 2.55,-1.45, 1.10,1.95,0.00,0.40,-0.22),
+   K(9.35, 1.50,-1.86, 0.30,1.90,1.00,0.82,-0.20),
+   K(10.0, 1.55,-1.90, 0.20,1.95,1.00,0.84,-0.18) ],
+ [ K(6.70, 0.35, 4.80, 1.80,2.00,0.00,0.00, 0.28),
+   K(7.30, 0.30, 2.30, 0.40,2.25,1.00,0.40, 0.15),
+   K(7.95, 0.27, 0.03,-5.00,1.23,1.00,1.00, 0.03),
+   K(8.70, 1.70, 1.50, 1.40,2.10,1.00,0.50, 0.13),
+   K(10.0, 2.15, 1.30, 1.60,1.70,1.00,0.70, 0.13) ]
 ];
 function keyAt(arr,s,fields){
   const o={};
@@ -1272,10 +1307,12 @@ const mProj=m4(),mView=m4(),mVP=m4(),mModel=m4(),mTilt=m4(),mSpin=m4(),mN=new Fl
 let G=null,geo={},shellGeo=null;
 
 function quality(){
-  if(mobile) return {rib:34,radial:8,ring:48,node:7,cables:6,cable:38,conduits:6,conduit:52,
-                     filaments:12,filament:20,coil:170,shellSub:1,parts:2600,samples:140};
-  return {rib:56,radial:11,ring:84,node:10,cables:7,cable:64,conduits:7,conduit:96,
-          filaments:15,filament:30,coil:300,shellSub:2,parts:7200,samples:200};
+  if(mobile) return {radial:8,ring:40,arc:84,node:7,cage:22,
+                     cables:5,cable:150,conduits:6,conduit:175,filaments:7,filament:105,
+                     coil:170,shellSub:0,parts:3200,samples:150};
+  return {radial:10,ring:56,arc:132,node:10,cage:30,
+          cables:6,cable:265,conduits:6,conduit:305,filaments:8,filament:175,
+          coil:300,shellSub:1,parts:6000,samples:230};
 }
 
 function boot(){
@@ -1293,7 +1330,7 @@ function boot(){
     ()=>{ G=buildSculpture(q); },
     ()=>{ geo.arm=makeSolidVAO(G.arm); geo.cab=makeSolidVAO(G.cab); },
     ()=>{ geo.con=makeSolidVAO(G.con); geo.fil=makeSolidVAO(G.fil); },
-    ()=>{ geo.coil=makeSolidVAO(G.coil); geo.nuc=makeSolidVAO(G.nuc); shellGeo=makeSolidVAO(G.shell); },
+    ()=>{ geo.coil=makeSolidVAO(G.coil); geo.nuc=makeSolidVAO(G.nuc); geo.rings=makeSolidVAO(G.rings); shellGeo=makeSolidVAO(G.shell); },
     ()=>{ quadVAO=makeQuad(); curveTex=bakeCurves(q.samples); partVAO=makeParticles(q.parts); },
     ()=>{ initSlots(); resize(); }
   ];
@@ -1325,7 +1362,7 @@ const MAT={
   con:{a:[0.238,0.266,0.316],r:0.15,m:1.00,b:1.0,e:0.0},
   fil:{a:[0.382,0.418,0.482],r:0.10,m:1.00,b:0.3,e:0.014}
 };
-const EMBER=[1.00,0.615,0.255];
+const VOLT=[0.255,0.800,1.000];
 
 function drawSolid(g,mat){
   const p=P.metal;
@@ -1377,8 +1414,8 @@ function frame(now){
   const camR=vnorm(vcross(fwd,V(0,1,0)));
   const camU=vcross(camR,fwd);
 
-  st.spin=reduceMotion? st.s*0.52 : st.t*0.052*settle+st.s*0.56;
-  m4rot(mTilt,0.072,0,0.052); m4rotY(mSpin,st.spin); m4mul(mModel,mTilt,mSpin);
+  st.spin=reduceMotion? st.s*0.20 : st.t*0.022*settle+st.s*0.20;
+  m4rot(mTilt,0,0,0); m4rotY(mSpin,st.spin); m4mul(mModel,mTilt,mSpin);
   nm3(mN,mModel);
 
   updateSlotTextures();
@@ -1392,15 +1429,15 @@ function frame(now){
   gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
   gl.useProgram(P.bg);
   gl.uniform2f(P.bg.u.uRes,W,H); gl.uniform1f(P.bg.u.uTime,st.t);
-  gl.uniform1f(P.bg.u.uEnergy,st.energy); gl.uniform3fv(P.bg.u.uCoreC,EMBER);
+  gl.uniform1f(P.bg.u.uEnergy,st.energy); gl.uniform3fv(P.bg.u.uCoreC,VOLT);
   gl.bindVertexArray(quadVAO); gl.drawArrays(gl.TRIANGLES,0,6);
 
   gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.depthFunc(gl.LEQUAL);
   const pm=P.metal; gl.useProgram(pm);
   gl.uniformMatrix4fv(pm.u.uVP,false,mVP); gl.uniformMatrix4fv(pm.u.uModel,false,mModel);
   gl.uniformMatrix3fv(pm.u.uNM,false,mN);
-  gl.uniform3f(pm.u.uCam,eye.x,eye.y,eye.z); gl.uniform3f(pm.u.uCoreP,0,0,0);
-  gl.uniform3fv(pm.u.uCoreC,EMBER); gl.uniform1f(pm.u.uCoreI,3.40+st.energy*1.5);
+  gl.uniform3f(pm.u.uCam,eye.x,eye.y,eye.z); gl.uniform3f(pm.u.uCoreP,0,c.ty,0);
+  gl.uniform3fv(pm.u.uCoreC,VOLT); gl.uniform1f(pm.u.uCoreI,3.40+st.energy*1.5);
   gl.uniform1f(pm.u.uTime,st.t); gl.uniform1f(pm.u.uEnergy,st.energy);
   const mix3=(a,b,c,wa,wb,wc)=>vnorm(V(a.x*wa+b.x*wb+c.x*wc,a.y*wa+b.y*wb+c.y*wc,a.z*wa+b.z*wb+c.z*wc));
   const keyD=mix3(camR,camU,fwd,-0.62,0.74,-0.25);
@@ -1415,25 +1452,27 @@ function frame(now){
   const pe=P.emis; gl.useProgram(pe);
   gl.uniformMatrix4fv(pe.u.uVP,false,mVP); gl.uniformMatrix4fv(pe.u.uModel,false,mModel);
   gl.uniformMatrix3fv(pe.u.uNM,false,mN);
-  gl.uniform3f(pe.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(pe.u.uCoreC,EMBER);
+  gl.uniform3f(pe.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(pe.u.uCoreC,VOLT);
   gl.uniform1f(pe.u.uTime,st.t); gl.uniform1f(pe.u.uEnergy,st.energy);
   gl.uniform1f(pe.u.uGain,1.90); gl.uniform1f(pe.u.uFlowSpeed,2.1);
   gl.bindVertexArray(geo.coil.vao); gl.drawElements(gl.TRIANGLES,geo.coil.count,geo.coil.type,0);
   gl.uniform1f(pe.u.uGain,1.60); gl.uniform1f(pe.u.uFlowSpeed,0.6);
   gl.bindVertexArray(geo.nuc.vao); gl.drawElements(gl.TRIANGLES,geo.nuc.count,geo.nuc.type,0);
+  gl.uniform1f(pe.u.uGain,0.72); gl.uniform1f(pe.u.uFlowSpeed,1.3);
+  gl.bindVertexArray(geo.rings.vao); gl.drawElements(gl.TRIANGLES,geo.rings.count,geo.rings.type,0);
 
   /* ---------- media windows ---------- */
   const camDist=vlen(vsub(eye,tgt));
   const order=[0,1,2].map(i=>{
     const k=keyAt(WIN[i],st.s,WINF);
-    const kx=mobile?k.x*0.30:k.x, ky=mobile?k.y*0.70+1.15:k.y;
-    const p=vadd(vadd(vadd(eye,vmul(fwd,camDist+k.z)),vmul(camR,kx)),vmul(camU,ky));
+    const kx=mobile?k.x*0.08:k.x, ky=mobile?k.y*0.55+0.26:k.y, kz=mobile?k.z*1.80:k.z;
+    const p=vadd(vadd(vadd(eye,vmul(fwd,camDist+kz)),vmul(camR,kx)),vmul(camU,ky));
     return {i,k,p,d:vlen(vsub(p,eye))};
   }).sort((a,b)=>b.d-a.d);
   const pmd=P.media; gl.useProgram(pmd);
   gl.uniformMatrix4fv(pmd.u.uVP,false,mVP);
-  gl.uniform3f(pmd.u.uCam,eye.x,eye.y,eye.z); gl.uniform3f(pmd.u.uCoreP,0,0,0);
-  gl.uniform3fv(pmd.u.uCoreC,EMBER); gl.uniform1f(pmd.u.uTime,st.t);
+  gl.uniform3f(pmd.u.uCam,eye.x,eye.y,eye.z); gl.uniform3f(pmd.u.uCoreP,0,c.ty,0);
+  gl.uniform3fv(pmd.u.uCoreC,VOLT); gl.uniform1f(pmd.u.uTime,st.t);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
   const ar=mobile?0.62:1.7778, crop=mobile?[0.46,1.0]:[1.0,1.0];
   for(const o of order){
@@ -1442,7 +1481,7 @@ function frame(now){
     let rg=vnorm(vcross(V(0,1,0),f)); const up=vcross(f,rg);
     const ct=Math.cos(o.k.ti),stt=Math.sin(o.k.ti);
     const rg2=vnorm(V(rg.x*ct-f.x*stt,rg.y*ct-f.y*stt,rg.z*ct-f.z*stt));
-    const msz=o.k.sz*(mobile?1.08:1.0);
+    const msz=o.k.sz*(mobile?1.48:1.0);
     const hw=msz*0.5*ar, hh=msz*0.5;
     gl.depthMask(o.k.op>0.5);
     gl.uniform3f(pmd.u.uCenter,o.p.x,o.p.y,o.p.z);
@@ -1461,18 +1500,22 @@ function frame(now){
   gl.blendFunc(gl.ONE,gl.ONE);
   const pgl=P.glow; gl.useProgram(pgl);
   gl.uniformMatrix4fv(pgl.u.uVP,false,mVP);
-  gl.uniform3fv(pgl.u.uCoreC,EMBER); gl.uniform1f(pgl.u.uTime,st.t);
+  gl.uniform3fv(pgl.u.uCoreC,VOLT); gl.uniform1f(pgl.u.uTime,st.t);
   gl.uniform1f(pgl.u.uEnergy,st.energy); gl.uniform1f(pgl.u.uGain,0.30);
   const gs=1.50;
-  gl.uniform3f(pgl.u.uCenter,0,0,0);
-  gl.uniform3f(pgl.u.uRight,camR.x*gs,camR.y*gs,camR.z*gs);
-  gl.uniform3f(pgl.u.uUp,camU.x*gs,camU.y*gs,camU.z*gs);
-  gl.bindVertexArray(quadVAO); gl.drawArrays(gl.TRIANGLES,0,6);
+  gl.bindVertexArray(quadVAO);
+  for(const gy of [CORE_Y,TERM_Y]){
+    if(Math.abs(gy-c.ty)>19) continue;
+    gl.uniform3f(pgl.u.uCenter,0,gy,0);
+    gl.uniform3f(pgl.u.uRight,camR.x*gs,camR.y*gs,camR.z*gs);
+    gl.uniform3f(pgl.u.uUp,camU.x*gs,camU.y*gs,camU.z*gs);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+  }
 
   const ps=P.shell; gl.useProgram(ps);
   gl.uniformMatrix4fv(ps.u.uVP,false,mVP); gl.uniformMatrix4fv(ps.u.uModel,false,mModel);
   gl.uniformMatrix3fv(ps.u.uNM,false,mN);
-  gl.uniform3f(ps.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(ps.u.uCoreC,EMBER);
+  gl.uniform3f(ps.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(ps.u.uCoreC,VOLT);
   gl.uniform1f(ps.u.uTime,st.t); gl.uniform1f(ps.u.uEnergy,st.energy); gl.uniform1f(ps.u.uGain,0.030);
   gl.bindVertexArray(shellGeo.vao); gl.drawElements(gl.TRIANGLES,shellGeo.count,shellGeo.type,0);
 
@@ -1481,8 +1524,9 @@ function frame(now){
   gl.uniform3f(pp.u.uCam,eye.x,eye.y,eye.z);
   gl.uniform3f(pp.u.uCamR,camR.x,camR.y,camR.z); gl.uniform3f(pp.u.uCamU,camU.x,camU.y,camU.z);
   gl.uniform1f(pp.u.uTime,st.t); gl.uniform1f(pp.u.uEnergy,st.energy);
-  gl.uniform1f(pp.u.uShed,st.shed); gl.uniform1f(pp.u.uScale,mobile?1.5:1.15);
-  gl.uniform3fv(pp.u.uCoreC,EMBER);
+  gl.uniform1f(pp.u.uShed,st.shed); gl.uniform1f(pp.u.uScale,mobile?2.2:1.75);
+  gl.uniform1f(pp.u.uBand,clamp((c.ty-TOP)/(BOT-TOP),0,1));
+  gl.uniform3fv(pp.u.uCoreC,VOLT);
   gl.uniform2f(pp.u.uCurveDim,curveDim[0],curveDim[1]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,curveTex); gl.uniform1i(pp.u.uCurve,0);
   gl.bindVertexArray(partVAO); gl.drawArraysInstanced(gl.TRIANGLES,0,6,partCount);
@@ -1534,7 +1578,7 @@ const el={
   chapN:document.querySelector('#chap .n'),
   chapL:[...document.querySelectorAll('#chap .l span')],
   p1:document.getElementById('p1'), p2:document.getElementById('p2'), p3:document.getElementById('p3'),
-  end:document.getElementById('end'), scrim:document.getElementById('scrim')
+  end:document.getElementById('end'), scrim:document.getElementById('scrim'), veil:document.getElementById('veil')
 };
 const TICKS=26;
 for(let i=0;i<TICKS;i++){ const d=document.createElement('span'); d.className='t'; el.scale.appendChild(d); }
@@ -1547,14 +1591,16 @@ function ui(s){
   const ti=Math.round(clamp(s/10,0,1)*(TICKS-1));
   if(ti!==lastTick){ if(lastTick>=0) ticks[lastTick].classList.remove('on');
     ticks[ti].classList.add('on'); lastTick=ti; }
-  const ch = s<1.2?0 : s<3.4?1 : s<5.6?2 : s<8.0?3 : 4;
+  const ch = s<1.6?0 : s<4.5?1 : s<7.1?2 : s<9.15?3 : 4;
   if(ch!==lastChap){
     el.chapL.forEach((n,i)=>n.classList.toggle('on',i===ch));
     el.chapN.textContent='0'+(ch+1); lastChap=ch;
   }
-  const a=s>1.90&&s<3.45, b=s>4.30&&s<5.95, c=s>6.60&&s<8.10, d=s>8.75;
+  const a=s>2.40&&s<3.60, b=s>5.30&&s<6.50, c=s>7.40&&s<8.60, d=s>9.15;
   on(el.p1,a); on(el.p2,b); on(el.p3,c); on(el.end,d);
   on(el.scrim,a||b||c||d);
+  on(el.veil,a||b||c||d);
+  if(el.veil.classList.contains('right')!==b) el.veil.classList.toggle('right',b);
 }
 
 /* pointer parallax */
