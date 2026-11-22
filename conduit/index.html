@@ -442,6 +442,7 @@ uniform vec3 uCam; uniform vec3 uCoreP; uniform vec3 uCoreC; uniform float uCore
 uniform vec3 uAlbedo; uniform float uRough; uniform float uMetal; uniform float uBrush;
 uniform float uTime; uniform float uEnergy; uniform float uEmis;
 uniform vec3 uKeyDir; uniform vec3 uKeyCol; uniform vec3 uRimDir; uniform vec3 uRimCol;
+uniform vec3 uEmisC;
 out vec4 frag;
 vec3 lightTerm(vec3 N,vec3 V,vec3 L,vec3 C,vec3 f0,float a,vec3 albedo,float metal){
   float NoL=max(dot(N,L),0.0);
@@ -499,8 +500,10 @@ void main(){
   col=mix(col,vec3(0.0026,0.0036,0.0058),fog*0.62);
 
   if(uEmis>0.0){
-    float flow=0.5+0.5*sin(vUV.x*TAU*2.4-uTime*1.7+uEnergy*3.0);
-    col+=uCoreC*uEmis*(0.35+0.65*flow);
+    float flow=0.5+0.5*sin(vUV.x*0.90-uTime*1.40+uEnergy*2.0);
+    float pulse=0.5+0.5*sin(vUV.x*0.22-uTime*0.55);
+    float edge=0.55+0.95*pow(1.0-NoV,2.2);
+    col+=uEmisC*uEmis*(0.40+0.60*flow)*(0.70+0.55*pulse)*edge;
   }
   frag=vec4(col,1.0);
 }
@@ -519,7 +522,7 @@ void main(){
   float flow=0.5+0.5*sin(vUV.x*TAU*3.0-uTime*uFlowSpeed);
   float pulse=0.72+0.28*sin(uTime*1.25+vUV.x*5.0);
   float n=fbm(vW*2.4+vec3(0.0,uTime*0.35,0.0));
-  vec3 hot=mix(uCoreC,vec3(1.0,0.96,0.90),0.26+0.30*flow);
+  vec3 hot=mix(uCoreC,vec3(1.0,0.94,0.98),0.10+0.22*flow);
   float i=uGain*(0.55+0.95*flow)*pulse*(0.70+0.6*n)*(1.0+uEnergy*0.9);
   vec3 col=hot*i*(0.45+0.85*core);
   col+=vec3(1.0,0.93,0.82)*pow(NoV,6.0)*i*0.5;
@@ -586,20 +589,33 @@ void main(){
   float frame=smoothstep(0.9865,0.9985,edge);
   float inner=smoothstep(0.9775,0.9830,edge)*(1.0-smoothstep(0.9830,0.9885,edge));
   vec3 fcol=mix(vec3(0.30,0.36,0.46),uCoreC,0.35+uFocus*0.5);
-  col=mix(col,fcol*(0.22+uFocus*0.55),frame);
+  col=mix(col,fcol*(0.40+uFocus*0.85),frame);
   col+=fcol*inner*(0.09+uFocus*0.30);
 
   vec3 V=normalize(uCam-vW);
+  float NoV=max(dot(normalize(cross(dFdx(vW),dFdy(vW))),V),0.0);
   vec3 toCore=normalize(uCoreP-vW);
   float spill=pow(max(dot(toCore,V),0.0),2.0);
-  col+=uCoreC*spill*0.028;
-  col*=0.74+0.26*uFocus;
+  col+=uCoreC*spill*0.030;
+
+  /* glass: a travelling sheen, a cool tint, and a brighter rim */
+  float sheen=pow(max(0.0,0.5+0.5*sin((vUV.x*1.25-vUV.y*0.95)*3.4+uTime*0.22)),7.0);
+  col+=vec3(0.50,0.80,1.00)*sheen*0.085;
+  col+=vec3(0.022,0.052,0.082)*(0.45+0.55*pow(1.0-NoV,2.0));
+  float rimg=pow(edge,3.2);
+  col+=fcol*rimg*0.22;
+
+  col*=0.80+0.20*uFocus;
   float mdd=length(uCam-vW)-length(uCam);
   float mfog=1.0-exp(-max(mdd+2.4,0.0)*0.16);
   col=mix(col,vec3(0.0026,0.0036,0.0058),mfog*0.42);
-  float vig=1.0-0.30*pow(edge,2.6);
+  float vig=1.0-0.26*pow(edge,2.6);
   col*=vig;
-  frag=vec4(col,uOpacity);
+
+  /* dark parts of the image read through; bright parts and the frame hold */
+  float luma=dot(col,vec3(0.2126,0.7152,0.0722));
+  float a=clamp(0.54+0.80*luma+frame*0.95+inner*0.45+rimg*0.26,0.0,1.0);
+  frag=vec4(col,uOpacity*a);
 }
 </script>
 
@@ -1264,29 +1280,29 @@ const CAM=[
 ];
 const K=(s,x,y,z,sz,op,fo,ti)=>({s,x,y,z,sz,op,fo,ti});
 const WIN=[
- [ K(1.30, 5.20, 0.45, 1.60,2.00,0.00,0.00, 0.44),
-   K(2.10, 2.90, 0.25, 0.30,2.25,1.00,0.40, 0.26),
-   K(2.95, 0.27, 0.03,-5.00,1.23,1.00,1.00, 0.04),
-   K(3.80,-1.90,-0.25, 0.70,2.25,1.00,0.40,-0.24),
-   K(4.70,-4.60,-0.55, 2.40,1.95,0.55,0.10,-0.46),
-   K(5.50,-6.80,-0.30, 3.20,1.80,0.00,0.05,-0.56),
-   K(8.70, 0.10, 1.85, 1.10,1.75,0.00,0.30, 0.24),
-   K(9.30, 0.35, 1.78, 0.70,1.80,1.00,0.66, 0.22),
-   K(10.0, 0.45, 1.72, 0.60,1.85,1.00,0.74, 0.20) ],
- [ K(4.30,-5.00, 0.50, 2.20,2.00,0.00,0.00,-0.44),
-   K(5.05,-2.70, 0.25, 0.50,2.25,1.00,0.40,-0.26),
-   K(5.85,-0.10, 0.03,-5.00,1.23,1.00,1.00,-0.04),
-   K(6.65, 2.10,-0.25, 0.80,2.25,1.00,0.40, 0.24),
-   K(7.40, 4.80,-0.55, 2.60,1.95,0.50,0.10, 0.46),
-   K(8.10, 7.00,-0.30, 3.20,1.80,0.00,0.05, 0.56),
-   K(8.80, 2.55,-1.45, 1.10,1.95,0.00,0.40,-0.22),
-   K(9.35, 1.50,-1.86, 0.30,1.90,1.00,0.82,-0.20),
-   K(10.0, 1.55,-1.90, 0.20,1.95,1.00,0.84,-0.18) ],
- [ K(6.70, 0.35, 4.80, 1.80,2.00,0.00,0.00, 0.28),
-   K(7.30, 0.30, 2.30, 0.40,2.25,1.00,0.40, 0.15),
-   K(7.95, 0.27, 0.03,-5.00,1.23,1.00,1.00, 0.03),
-   K(8.70, 1.70, 1.50, 1.40,2.10,1.00,0.50, 0.13),
-   K(10.0, 2.15, 1.30, 1.60,1.70,1.00,0.70, 0.13) ]
+ [ K(1.30, 5.20, 0.45, 1.60, 2.38, 0.00, 0.00, 0.44),
+   K(2.10, 2.90, 0.25, 0.30, 2.68, 1.00, 0.40, 0.26),
+   K(2.95, 0.27, 0.03, -5.00, 1.46, 1.00, 1.00, 0.04),
+   K(3.80, -1.90, -0.25, 0.70, 2.68, 1.00, 0.40, -0.24),
+   K(4.70, -4.60, -0.55, 2.40, 2.32, 0.55, 0.10, -0.46),
+   K(5.50, -6.80, -0.30, 3.20, 2.14, 0.00, 0.05, -0.56),
+   K(8.70, 0.10, 1.85, 1.10, 2.08, 0.00, 0.30, 0.24),
+   K(9.30, 0.00, 2.02, 0.70, 2.10, 1.00, 0.66, 0.22),
+   K(10.0, 0.05, 1.98, 0.60, 2.15, 1.00, 0.74, 0.20) ],
+ [ K(4.30, -5.00, 0.50, 2.20, 2.38, 0.00, 0.00, -0.44),
+   K(5.05, -2.70, 0.25, 0.50, 2.68, 1.00, 0.40, -0.26),
+   K(5.85, -0.10, 0.03, -5.00, 1.46, 1.00, 1.00, -0.04),
+   K(6.65, 2.10, -0.25, 0.80, 2.68, 1.00, 0.40, 0.24),
+   K(7.40, 4.80, -0.55, 2.60, 2.32, 0.50, 0.10, 0.46),
+   K(8.10, 7.00, -0.30, 3.20, 2.14, 0.00, 0.05, 0.56),
+   K(8.80, 2.55, -1.45, 1.10, 2.32, 0.00, 0.40, -0.22),
+   K(9.35, 1.24, -1.64, 0.30, 2.20, 1.00, 0.82, -0.20),
+   K(10.0, 1.28, -1.68, 0.20, 2.25, 1.00, 0.84, -0.18) ],
+ [ K(6.70, 0.35, 4.80, 1.80, 2.38, 0.00, 0.00, 0.28),
+   K(7.30, 0.30, 2.30, 0.40, 2.68, 1.00, 0.40, 0.15),
+   K(7.95, 0.27, 0.03, -5.00, 1.46, 1.00, 1.00, 0.03),
+   K(8.70, 1.70, 1.50, 1.40, 2.50, 1.00, 0.50, 0.13),
+   K(10.0, 2.70, 1.02, 1.60, 1.95, 1.00, 0.70, 0.13) ]
 ];
 function keyAt(arr,s,fields){
   const o={};
@@ -1357,17 +1373,20 @@ function resize(){
 }
 
 const MAT={
-  arm:{a:[0.196,0.218,0.262],r:0.29,m:0.92,b:1.0,e:0.0},
-  cab:{a:[0.098,0.110,0.134],r:0.20,m:1.00,b:0.6,e:0.0},
-  con:{a:[0.238,0.266,0.316],r:0.15,m:1.00,b:1.0,e:0.0},
-  fil:{a:[0.382,0.418,0.482],r:0.10,m:1.00,b:0.3,e:0.014}
+  arm:{a:[0.196,0.218,0.262],r:0.29,m:0.92,b:1.0,e:0.00,ec:[0,0,0]},
+  cab:{a:[0.042,0.050,0.066],r:0.22,m:1.00,b:0.6,e:1.25,ec:[0.060,0.280,1.000]},
+  con:{a:[0.058,0.048,0.074],r:0.18,m:1.00,b:1.0,e:1.10,ec:[0.820,0.150,0.980]},
+  fil:{a:[0.068,0.082,0.098],r:0.12,m:1.00,b:0.3,e:1.70,ec:[0.080,1.000,0.880]}
 };
-const VOLT=[0.255,0.800,1.000];
+const VOLT=[0.255,0.800,1.000];      // UI / particles / window frames
+const CORE_C=[1.000,0.235,0.720];    // the centre piece
+const LIGHT_C=[0.620,0.840,1.000];   // the light travelling the axis
 
 function drawSolid(g,mat){
   const p=P.metal;
   gl.uniform3fv(p.u.uAlbedo,mat.a); gl.uniform1f(p.u.uRough,mat.r);
   gl.uniform1f(p.u.uMetal,mat.m); gl.uniform1f(p.u.uBrush,mat.b); gl.uniform1f(p.u.uEmis,mat.e);
+  gl.uniform3fv(p.u.uEmisC,mat.ec);
   gl.bindVertexArray(g.vao); gl.drawElements(gl.TRIANGLES,g.count,g.type,0);
 }
 function blit(p,src,dst,setup){
@@ -1437,27 +1456,28 @@ function frame(now){
   gl.uniformMatrix4fv(pm.u.uVP,false,mVP); gl.uniformMatrix4fv(pm.u.uModel,false,mModel);
   gl.uniformMatrix3fv(pm.u.uNM,false,mN);
   gl.uniform3f(pm.u.uCam,eye.x,eye.y,eye.z); gl.uniform3f(pm.u.uCoreP,0,c.ty,0);
-  gl.uniform3fv(pm.u.uCoreC,VOLT); gl.uniform1f(pm.u.uCoreI,3.40+st.energy*1.5);
+  gl.uniform3fv(pm.u.uCoreC,LIGHT_C); gl.uniform1f(pm.u.uCoreI,3.40+st.energy*1.5);
   gl.uniform1f(pm.u.uTime,st.t); gl.uniform1f(pm.u.uEnergy,st.energy);
   const mix3=(a,b,c,wa,wb,wc)=>vnorm(V(a.x*wa+b.x*wb+c.x*wc,a.y*wa+b.y*wb+c.y*wc,a.z*wa+b.z*wb+c.z*wc));
   const keyD=mix3(camR,camU,fwd,-0.62,0.74,-0.25);
   const rimD=mix3(camR,camU,fwd, 0.55,0.35, 0.78);
   gl.uniform3f(pm.u.uKeyDir,keyD.x,keyD.y,keyD.z);
   gl.uniform3f(pm.u.uRimDir,rimD.x,rimD.y,rimD.z);
-  gl.uniform3f(pm.u.uKeyCol,0.54,0.61,0.75);
-  gl.uniform3f(pm.u.uRimCol,0.40,0.58,0.96);
+  gl.uniform3f(pm.u.uKeyCol,0.44,0.50,0.62);
+  gl.uniform3f(pm.u.uRimCol,0.32,0.48,0.82);
   drawSolid(geo.arm,MAT.arm); drawSolid(geo.cab,MAT.cab);
   drawSolid(geo.con,MAT.con); drawSolid(geo.fil,MAT.fil);
 
   const pe=P.emis; gl.useProgram(pe);
   gl.uniformMatrix4fv(pe.u.uVP,false,mVP); gl.uniformMatrix4fv(pe.u.uModel,false,mModel);
   gl.uniformMatrix3fv(pe.u.uNM,false,mN);
-  gl.uniform3f(pe.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(pe.u.uCoreC,VOLT);
+  gl.uniform3f(pe.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(pe.u.uCoreC,CORE_C);
   gl.uniform1f(pe.u.uTime,st.t); gl.uniform1f(pe.u.uEnergy,st.energy);
   gl.uniform1f(pe.u.uGain,1.90); gl.uniform1f(pe.u.uFlowSpeed,2.1);
   gl.bindVertexArray(geo.coil.vao); gl.drawElements(gl.TRIANGLES,geo.coil.count,geo.coil.type,0);
   gl.uniform1f(pe.u.uGain,1.60); gl.uniform1f(pe.u.uFlowSpeed,0.6);
   gl.bindVertexArray(geo.nuc.vao); gl.drawElements(gl.TRIANGLES,geo.nuc.count,geo.nuc.type,0);
+  gl.uniform3fv(pe.u.uCoreC,VOLT);
   gl.uniform1f(pe.u.uGain,0.72); gl.uniform1f(pe.u.uFlowSpeed,1.3);
   gl.bindVertexArray(geo.rings.vao); gl.drawElements(gl.TRIANGLES,geo.rings.count,geo.rings.type,0);
 
@@ -1483,7 +1503,7 @@ function frame(now){
     const rg2=vnorm(V(rg.x*ct-f.x*stt,rg.y*ct-f.y*stt,rg.z*ct-f.z*stt));
     const msz=o.k.sz*(mobile?1.48:1.0);
     const hw=msz*0.5*ar, hh=msz*0.5;
-    gl.depthMask(o.k.op>0.5);
+    gl.depthMask(false);
     gl.uniform3f(pmd.u.uCenter,o.p.x,o.p.y,o.p.z);
     gl.uniform3f(pmd.u.uRight,rg2.x*hw,rg2.y*hw,rg2.z*hw);
     gl.uniform3f(pmd.u.uUp,up.x*hh,up.y*hh,up.z*hh);
@@ -1500,7 +1520,7 @@ function frame(now){
   gl.blendFunc(gl.ONE,gl.ONE);
   const pgl=P.glow; gl.useProgram(pgl);
   gl.uniformMatrix4fv(pgl.u.uVP,false,mVP);
-  gl.uniform3fv(pgl.u.uCoreC,VOLT); gl.uniform1f(pgl.u.uTime,st.t);
+  gl.uniform3fv(pgl.u.uCoreC,CORE_C); gl.uniform1f(pgl.u.uTime,st.t);
   gl.uniform1f(pgl.u.uEnergy,st.energy); gl.uniform1f(pgl.u.uGain,0.30);
   const gs=1.50;
   gl.bindVertexArray(quadVAO);
@@ -1515,7 +1535,7 @@ function frame(now){
   const ps=P.shell; gl.useProgram(ps);
   gl.uniformMatrix4fv(ps.u.uVP,false,mVP); gl.uniformMatrix4fv(ps.u.uModel,false,mModel);
   gl.uniformMatrix3fv(ps.u.uNM,false,mN);
-  gl.uniform3f(ps.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(ps.u.uCoreC,VOLT);
+  gl.uniform3f(ps.u.uCam,eye.x,eye.y,eye.z); gl.uniform3fv(ps.u.uCoreC,CORE_C);
   gl.uniform1f(ps.u.uTime,st.t); gl.uniform1f(ps.u.uEnergy,st.energy); gl.uniform1f(ps.u.uGain,0.030);
   gl.bindVertexArray(shellGeo.vao); gl.drawElements(gl.TRIANGLES,shellGeo.count,shellGeo.type,0);
 
@@ -1539,7 +1559,7 @@ function frame(now){
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER,null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,null);
   }
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
-  blit(P.bright,sceneFBO.tex,bloomA[0],p=>gl.uniform1f(p.u.uThresh,1.05));
+  blit(P.bright,sceneFBO.tex,bloomA[0],p=>gl.uniform1f(p.u.uThresh,0.84));
   blit(P.blur,bloomA[0].tex,bloomA[1],p=>gl.uniform2f(p.u.uDir,1.4/bloomA[0].w,0));
   blit(P.blur,bloomA[1].tex,bloomA[0],p=>gl.uniform2f(p.u.uDir,0,1.4/bloomA[0].h));
   blit(P.blur,bloomA[0].tex,bloomB[0],p=>gl.uniform2f(p.u.uDir,1.6/bloomB[0].w,0));

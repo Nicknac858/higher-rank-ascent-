@@ -8,8 +8,9 @@ Separate design explorations for Higher Rank. Neither replaces any approved High
 A structure you descend. A vertical conduit of cables, helical wires, tunnel ribs and wide
 outer arcs runs far beyond the frame; scrolling carries you down it, past node collars, from
 a luminous core at the top to a terminus at the bottom. Three replaceable media windows swing
-to a large, face-on position in front of the structure where each is fully readable.
-Electric cyan and white on near-black.
+to a large, face-on position in front of the structure, rendered as panes of smoked glass
+you can see the wires through. Neon: a magenta core, deep-blue cables, violet conduits and
+aqua filaments, against steel ribs on near-black.
 
 **Ascent** (earlier direction, not approved) — `index.html`
 Moonlit dunes climbed toward sunrise. Preserved unchanged.
@@ -21,8 +22,10 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 - `v3-ascent-terraces-aurora.html` — new palette and richer sky
 - `v4-ascent-dunes.html` — moonlit dunes (same as `index.html`)
 - `v5-conduit.html` — The Conduit, first pass: a single floating sculpture, warm amber palette
-- `v6-conduit-descent.html` — The Conduit, current: descent through a larger structure, cool
-  palette, media windows brought to the front (same as `conduit/index.html`)
+- `v6-conduit-descent.html` — The Conduit: descent through a larger structure, cool palette,
+  media windows brought to the front
+- `v7-conduit-neon-glass.html` — The Conduit, current: neon colour per wire gauge, magenta
+  core, larger media panes with a glass treatment (same as `conduit/index.html`)
 
 ## The Conduit — how it works
 One self-contained file. Open it in a browser.
@@ -34,6 +37,9 @@ scrolling backward reverses the journey exactly.
   filaments, with tunnel ribs every four units and wide outer arcs that sweep past the viewport.
   Node collars sit at five stations. A coiled emissive torus-knot heart sits inside a containment
   field at the top core and again at the bottom terminus, where cables converge into a wide ring.
+- **Colour** — each wire gauge carries its own neon emissive (`MAT[].ec` and `.e`), pulsing along
+  its length with a fresnel edge so the tubes read as lit glass rod. The core and terminus are
+  magenta; the ribs, arcs and collars stay steel so the neon has something neutral to sit against.
 - **Lighting** — a travelling light rides the conduit axis at the camera's height; a camera-relative key and rim light
   keep the metal reading from every angle. GGX specular, procedural environment reflections,
   8× multisampling, bloom, filmic tone curve.
@@ -41,7 +47,9 @@ scrolling backward reverses the journey exactly.
   the wires in the vertex shader, slow and brighten at the nodes, and shed outward as energy rises.
 - **Media windows** — textured quads inside the 3D scene, depth-tested against the structure, so
   wires genuinely pass in front of and behind them while they travel. At each focus moment the
-  window moves forward of every wire, so the content reads cleanly. Positioned in camera space.
+  window moves forward of every wire, so the content reads cleanly. Rendered as glass: a
+  travelling sheen, a cool body tint, a brighter rim, and an alpha that rises with image
+  brightness so dark areas read through and bright areas hold. Positioned in camera space.
 
 ### Replacing the media
 Near the top of the last `<script>` block:
