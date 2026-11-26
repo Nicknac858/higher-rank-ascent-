@@ -1,0 +1,484 @@
+{
+  "note": "Headless Chrome, SwiftShader software GL. Frame times are relative only; they are not GPU or phone measurements.",
+  "runs": {
+    "desktop-before": {
+      "frames": {
+        "scroll0.0": {
+          "frames": 12,
+          "fps": 1.9,
+          "mean_ms": 533.32,
+          "p50_ms": 533.4,
+          "p95_ms": 566.7,
+          "max_ms": 566.7,
+          "over_33ms": 12,
+          "main_thread_busy_pct": 99.9
+        },
+        "scroll0.5": {
+          "frames": 13,
+          "fps": 2.2,
+          "mean_ms": 461.52,
+          "p50_ms": 450,
+          "p95_ms": 550.1,
+          "max_ms": 550.1,
+          "over_33ms": 13,
+          "main_thread_busy_pct": 98.6
+        },
+        "scroll0.97": {
+          "frames": 12,
+          "fps": 2.0,
+          "mean_ms": 506.92,
+          "p50_ms": 516.6,
+          "p95_ms": 600.1,
+          "max_ms": 600.1,
+          "over_33ms": 12,
+          "main_thread_busy_pct": 98.4
+        }
+      },
+      "state": "n/a",
+      "contrast": {
+        "scroll0.0": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.003,
+            "contrast": 6.32
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0029,
+            "contrast": 6.32
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0029,
+            "contrast": 6.32
+          }
+        ],
+        "scroll0.5": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0094,
+            "contrast": 5.64
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0172,
+            "contrast": 4.98
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0032,
+            "contrast": 6.29
+          }
+        ],
+        "scroll0.97": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0115,
+            "contrast": 5.44
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0108,
+            "contrast": 5.51
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.003,
+            "contrast": 6.32
+          }
+        ]
+      },
+      "nav_box": {
+        "x": 1193.359375,
+        "y": 46,
+        "width": 200.640625,
+        "height": 36
+      },
+      "state_end": "n/a",
+      "console": [
+        "error: Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    "desktop-after": {
+      "frames": {
+        "scroll0.0": {
+          "frames": 11,
+          "fps": 1.8,
+          "mean_ms": 566.64,
+          "p50_ms": 549.9,
+          "p95_ms": 699.9,
+          "max_ms": 699.9,
+          "over_33ms": 11,
+          "main_thread_busy_pct": 99.6
+        },
+        "scroll0.5": {
+          "frames": 13,
+          "fps": 2.2,
+          "mean_ms": 462.8,
+          "p50_ms": 466.7,
+          "p95_ms": 500,
+          "max_ms": 500,
+          "over_33ms": 13,
+          "main_thread_busy_pct": 98.8
+        },
+        "scroll0.97": {
+          "frames": 12,
+          "fps": 2.0,
+          "mean_ms": 504.14,
+          "p50_ms": 483.4,
+          "p95_ms": 600,
+          "max_ms": 600,
+          "over_33ms": 12,
+          "main_thread_busy_pct": 98.6
+        }
+      },
+      "state": "live:pinned",
+      "contrast": {
+        "scroll0.0": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0151,
+            "contrast": 5.14
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0191,
+            "contrast": 4.84
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ],
+        "scroll0.5": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0108,
+            "contrast": 5.5
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0075,
+            "contrast": 5.82
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ],
+        "scroll0.97": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0108,
+            "contrast": 5.5
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0075,
+            "contrast": 5.82
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ]
+      },
+      "nav_box": {
+        "x": 1193.359375,
+        "y": 46,
+        "width": 200.640625,
+        "height": 36
+      },
+      "state_end": "live:pinned",
+      "console": [
+        "error: Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    "mobile-before": {
+      "frames": {
+        "scroll0.0": {
+          "frames": 48,
+          "fps": 7.8,
+          "mean_ms": 127.42,
+          "p50_ms": 116.7,
+          "p95_ms": 166.7,
+          "max_ms": 183.3,
+          "over_33ms": 48,
+          "main_thread_busy_pct": 99.8
+        },
+        "scroll0.5": {
+          "frames": 71,
+          "fps": 11.8,
+          "mean_ms": 84.74,
+          "p50_ms": 83.3,
+          "p95_ms": 116.6,
+          "max_ms": 133.3,
+          "over_33ms": 71,
+          "main_thread_busy_pct": 99.8
+        },
+        "scroll0.97": {
+          "frames": 66,
+          "fps": 11.0,
+          "mean_ms": 91.16,
+          "p50_ms": 99.9,
+          "p95_ms": 116.7,
+          "max_ms": 133.3,
+          "over_33ms": 66,
+          "main_thread_busy_pct": 99.9
+        }
+      },
+      "state": "n/a",
+      "contrast": {
+        "scroll0.0": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0154,
+            "contrast": 5.12
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0242,
+            "contrast": 4.51
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0122,
+            "contrast": 5.38
+          }
+        ],
+        "scroll0.5": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0272,
+            "contrast": 4.33
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0342,
+            "contrast": 3.98
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.01,
+            "contrast": 5.57
+          }
+        ],
+        "scroll0.97": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0122,
+            "contrast": 5.38
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0266,
+            "contrast": 4.37
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0086,
+            "contrast": 5.71
+          }
+        ]
+      },
+      "nav_box": {
+        "x": 187.75,
+        "y": 18,
+        "width": 184.25,
+        "height": 35
+      },
+      "state_end": "n/a",
+      "console": [
+        "error: Failed to load resource: net::ERR_FAILED"
+      ]
+    },
+    "mobile-after": {
+      "frames": {
+        "scroll0.0": {
+          "frames": 47,
+          "fps": 7.7,
+          "mean_ms": 129.78,
+          "p50_ms": 116.7,
+          "p95_ms": 166.7,
+          "max_ms": 183.4,
+          "over_33ms": 47,
+          "main_thread_busy_pct": 99.9
+        },
+        "scroll0.5": {
+          "frames": 72,
+          "fps": 11.9,
+          "mean_ms": 84.02,
+          "p50_ms": 83.3,
+          "p95_ms": 100.1,
+          "max_ms": 133.4,
+          "over_33ms": 72,
+          "main_thread_busy_pct": 99.9
+        },
+        "scroll0.97": {
+          "frames": 65,
+          "fps": 10.8,
+          "mean_ms": 92.56,
+          "p50_ms": 100,
+          "p95_ms": 100.1,
+          "max_ms": 116.7,
+          "over_33ms": 65,
+          "main_thread_busy_pct": 99.9
+        }
+      },
+      "state": "live:pinned",
+      "contrast": {
+        "scroll0.0": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0108,
+            "contrast": 5.5
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0091,
+            "contrast": 5.66
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ],
+        "scroll0.5": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0109,
+            "contrast": 5.49
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0091,
+            "contrast": 5.66
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ],
+        "scroll0.97": [
+          {
+            "id": "btnWork",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0109,
+            "contrast": 5.49
+          },
+          {
+            "id": "btnContact",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0091,
+            "contrast": 5.66
+          },
+          {
+            "id": "btnSound",
+            "text": "rgb(138, 146, 159)",
+            "bg_lum_p80": 0.0,
+            "contrast": 6.69
+          }
+        ]
+      },
+      "nav_box": {
+        "x": 187.75,
+        "y": 18,
+        "width": 184.25,
+        "height": 35
+      },
+      "state_end": "live:pinned",
+      "console": [
+        "error: Failed to load resource: net::ERR_FAILED"
+      ]
+    }
+  },
+  "guard_on_this_machine": "live",
+  "isolated_navbar": {
+    "blank_page": {
+      "frames": 361,
+      "fps": 60.0,
+      "mean_ms": 16.67,
+      "p50_ms": 16.7,
+      "p95_ms": 16.8,
+      "max_ms": 16.8,
+      "over_33ms": 0,
+      "main_thread_busy_pct": 0.7
+    },
+    "glass_navbar_only": {
+      "frames": 243,
+      "fps": 40.3,
+      "mean_ms": 24.83,
+      "p50_ms": 16.7,
+      "p95_ms": 33.4,
+      "max_ms": 50.1,
+      "over_33ms": 17,
+      "main_thread_busy_pct": 99.9
+    }
+  },
+  "interactions": {
+    "work_opens": true,
+    "work_closes": true,
+    "contact_opens": true,
+    "sound_toggles": true,
+    "tab_focus": "btnStart",
+    "wheel_scrolls": true,
+    "state": "live:pinned"
+  },
+  "fallbacks": {
+    "cdn_blocked": {
+      "state": "solid:not-ready",
+      "pill_bg": "rgba(10, 14, 20, 0.42)"
+    },
+    "reduced_motion": {
+      "state": "live:pinned",
+      "pill_bg": "rgba(0, 0, 0, 0)",
+      "still": true
+    },
+    "forced_solid": {
+      "state": "solid:requested",
+      "pill_bg": "rgba(10, 14, 20, 0.42)"
+    },
+    "context_lost": {
+      "state": "solid:webgl-unavailable",
+      "is_component": "DIV"
+    }
+  }
+}
