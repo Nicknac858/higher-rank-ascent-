@@ -263,7 +263,10 @@ async function boot() {
   let viewH = innerHeight;
   let lastW = 0;
   let lastH = 0;
-  const gov = new Governor(() => resize(true), q.targetMs);
+  // Resizing the canvas clears it. Requests are applied at the start of the next frame, before it
+  // renders, so a quality step or window resize never leaves an empty (black) frame on screen.
+  let pendingResize = 0;
+  const gov = new Governor(() => { pendingResize = 2; }, q.targetMs);
   // Feature switches (used by the weak-GPU profile and the #bench run).
   const features = { dpr: null, reflection: true };
   function resize(force = false) {
@@ -284,7 +287,7 @@ async function boot() {
     viewH = h * dpr;
   }
   resize(true);
-  addEventListener('resize', () => resize());
+  addEventListener('resize', () => { pendingResize = Math.max(pendingResize, 1); });
 
   // ---------- pointer ----------
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -348,6 +351,7 @@ async function boot() {
     const dtMs = now - last;
     last = now;
     const dt = Math.min(0.1, Math.max(0.001, dtMs / 1000));
+    if (pendingResize) { const force = pendingResize === 2; pendingResize = 0; resize(force); }
     lenis?.raf(now);
     if (startTime === null) startTime = now;
     const targetT = window.scrollY / unit;

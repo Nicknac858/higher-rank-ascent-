@@ -142,9 +142,11 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
       // a soft roof, and the accent glow of the stage below
       vec3 arenaEnv(vec3 r){
         float up = r.y;
-        float az = atan(r.x, r.z);
-        float cols = pow(0.5 + 0.5 * cos(az * 7.0 + 0.6), 40.0) * smoothstep(-0.05, 0.3, up) * (1.0 - smoothstep(0.6, 0.95, up));
-        float ring = exp(-pow((up - 0.38) * 8.0, 2.0));
+        float az = atan(r.x, r.z + 1e-5);
+        float cols = pow(max(0.5 + 0.5 * cos(az * 7.0 + 0.6), 0.0), 40.0) * smoothstep(-0.05, 0.3, up) * (1.0 - smoothstep(0.6, 0.95, up));
+        // squares written out: pow() of a negative number is NaN on some GPUs (D3D), and bloom spreads NaN over the frame
+        float re = (up - 0.38) * 8.0;
+        float ring = exp(-re * re);
         float roof = smoothstep(0.55, 1.0, up);
         vec3 c = vec3(0.50, 0.70, 1.0) * (cols * 1.6 + ring * 0.55 + roof * 0.35);
         c += uAccent * 0.16 * smoothstep(0.0, -0.5, up);
@@ -185,7 +187,7 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
         vec4 c = texture2D(map, cuv);                     // premultiplied alpha
         col = col * (1.0 - c.a * rev) + c.rgb * 1.15 * rev * (0.62 + 0.38 * uFocus);
         // the content powers on behind a crisp hairline
-        float wipeLine = (1.0 - smoothstep(0.0, fwidth(diag) * 1.5, abs(diag - wipe - 0.01))) * step(uReveal, 0.98) * face;
+        float wipeLine = (1.0 - smoothstep(0.0, max(fwidth(diag), 1e-6) * 1.5, abs(diag - wipe - 0.01))) * step(uReveal, 0.98) * face;
         col += vec3(0.45, 0.68, 1.0) * wipeLine;
 
         // reflections: faint face-on, strong at grazing angles, so light sweeps across as the pane turns
@@ -194,7 +196,8 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
 
         // a broad sheen across the face; it slides as the pane turns, so light sweeps over the glass
         float sweepPos = 0.55 + n.x * 1.7;
-        float sheen = exp(-pow((cuv.x + (1.0 - cuv.y) * 0.35 - sweepPos) * 3.2, 2.0));
+        float se = (cuv.x + (1.0 - cuv.y) * 0.35 - sweepPos) * 3.2;
+        float sheen = exp(-se * se);
         col += vec3(0.62, 0.78, 1.0) * sheen * uSheen * face;
 
         // light-pipe edge: glass edges glow; cool on top, picking up the accent underneath
@@ -202,11 +205,12 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
         vec3 edgeCol = mix(vec3(0.62, 0.86, 1.0), uAccent * 1.4, smoothstep(0.2, -0.7, upW) * 0.8);
         col += edgeCol * pow(rim, 1.6) * (0.55 + 1.6 * fres) * uEdge;
         // a crisp lip where the flat face rolls into the edge
-        float lip = 1.0 - smoothstep(0.0, fwidth(d2) * 1.6, abs(d2 + 0.004));
+        float lip = 1.0 - smoothstep(0.0, max(fwidth(d2), 1e-6) * 1.6, abs(d2 + 0.004));
         float topLit = 0.35 + 0.65 * smoothstep(-0.3, 0.7, g2.y);
         col += vec3(0.70, 0.85, 1.0) * lip * (0.25 + 0.75 * fres) * 0.75 * topLit;
 
-        gl_FragColor = vec4(applyFog(col, vDist), uOpacity);
+        // last line of defence: max() returns the non-NaN operand on D3D, so a stray NaN can't reach bloom
+        gl_FragColor = vec4(max(applyFog(col, vDist), vec3(0.0)), uOpacity);
       }
     `,
   });
