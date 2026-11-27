@@ -4,6 +4,7 @@ import Lenis from 'lenis';
 import {
   EffectComposer, RenderPass, EffectPass, BloomEffect, ToneMappingEffect, ToneMappingMode,
   VignetteEffect, ChromaticAberrationEffect, Effect, EffectAttribute, BlendFunction,
+  SMAAEffect, SMAAPreset,
 } from 'postprocessing';
 import { buildArena, buildEnvironment } from './arena.js';
 import { fogUniforms, screenMaterial } from './materials.js';
@@ -223,20 +224,30 @@ async function boot() {
 
   const reflection = createReflection(renderer, { type: bufferType });
   const floorU = arena.floor.material.uniforms;
+  // light profile: cheaper beams, haze and floor; heavy see-through layers skip the reflection
+  let reflFrame = 0;
+  const reflHide = [...arena.anim.beams.map((b) => b.beam), arena.anim.pedestalBeam, arena.anim.flares, arena.anim.crowd, ...arena.anim.hazes.map((h) => h.mesh)];
+  if (q.cheap) {
+    arena.anim.beams.forEach((b) => { b.beam.material.uniforms.uCheap.value = 1; });
+    arena.anim.pedestalBeam.material.uniforms.uCheap.value = 1;
+    arena.anim.hazes.forEach((h) => { h.mesh.material.uniforms.uCheap.value = 1; });
+    floorU.uCheap.value = 1;
+  }
   floorU.uTexMatrix.value = reflection.textureMatrix;
 
   const composer = new EffectComposer(renderer, { frameBufferType: bufferType, multisampling: q.msaa });
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 1.0, luminanceSmoothing: 0.3, intensity: 0.7, radius: 0.56, levels: 7 });
+  const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 1.0, luminanceSmoothing: 0.3, intensity: 0.7, radius: 0.56, levels: 7, resolutionScale: q.bloomScale });
   const toneMode = params.get('tone') === 'agx' ? ToneMappingMode.AGX : ToneMappingMode.ACES_FILMIC;
   const tone = new ToneMappingEffect({ mode: toneMode });
   const vignette = new VignetteEffect({ offset: 0.3, darkness: 0.62 });
   const ca = new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.00022, 0.00014), radialModulation: true, modulationOffset: 0.45 });
   const grain = new GrainEffect({ amount: 0.02, haze: 1 });
   const sharpen = new SharpenEffect({ amount: q.mobile ? 0.35 : 0.6 });
-  const effects = q.tier >= 2 ? [ca, bloom, tone, vignette] : [bloom, tone, vignette];
+  const effects = q.tier >= 2 && q.profile === 'full' ? [ca, bloom, tone, vignette] : [bloom, tone, vignette];
   const mainPass = new EffectPass(camera, ...effects);
   composer.addPass(mainPass);
+  if (q.smaa) composer.addPass(new EffectPass(camera, new SMAAEffect({ preset: SMAAPreset.MEDIUM })));
   const finishPass = new EffectPass(camera, sharpen, grain);
   finishPass.dithering = true;
   composer.addPass(finishPass);
@@ -245,7 +256,7 @@ async function boot() {
   let viewH = innerHeight;
   let lastW = 0;
   let lastH = 0;
-  const gov = new Governor(() => resize(true));
+  const gov = new Governor(() => resize(true), q.targetMs);
   // Feature switches (used by the weak-GPU profile and the #bench run).
   const features = { dpr: null, reflection: true };
   function resize(force = false) {
@@ -298,7 +309,8 @@ async function boot() {
     arena.anim.dust.material.uniforms.uFocus.value = focusDist;
     arena.anim.dust.material.uniforms.uAperture.value = (mobile ? 26 : 38) * (viewH / 1000);
     scene.updateMatrixWorld();
-    if (features.reflection) reflection.update(scene, camera, arena.floor);
+    reflFrame++;
+    if (features.reflection && (reflFrame % q.reflEvery === 0 || reflFrame < 3)) reflection.update(scene, camera, arena.floor, q.reflHide ? reflHide : []);
     composer.render(dt);
   }
 
@@ -318,7 +330,7 @@ async function boot() {
     if (now - statsAt < 400) return;
     statsAt = now;
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-    statsEl.textContent = `${fpsEma.toFixed(0)} fps\n${size.x}x${size.y} (${renderer.getPixelRatio().toFixed(2)}x)\nMSAA ${q.msaa} · tier ${q.tier} · step ${gov.step}\n${q.gpu.slice(0, 48)}`;
+    statsEl.textContent = `${fpsEma.toFixed(0)} fps\n${size.x}x${size.y} (${renderer.getPixelRatio().toFixed(2)}x)\n${q.profile} · MSAA ${q.msaa}${q.smaa ? ' · SMAA' : ''} · step ${gov.step}\n${q.gpu.slice(0, 48)}`;
   }
 
   let raf = 0;
@@ -384,16 +396,20 @@ async function boot() {
     document.body.appendChild(box);
     const beamsOf = (kind) => arena.anim.beams.filter((b) => b.kind === kind);
     const setBeams = (kind, on) => beamsOf(kind).forEach((b) => { b.beam.visible = on; });
-    const setCheap = (on) => arena.anim.beams.forEach((b) => { b.beam.material.uniforms.uCheap.value = on ? 1 : 0; });
+    const setCheap = (on) => {
+      arena.anim.beams.forEach((b) => { b.beam.material.uniforms.uCheap.value = on ? 1 : 0; });
+      arena.anim.hazes.forEach((h) => { h.mesh.material.uniforms.uCheap.value = on ? 1 : 0; });
+      floorU.uCheap.value = on ? 1 : 0;
+    };
     const setBloom = (on) => bloom.blendMode.setBlendFunction(on ? BlendFunction.ADD : BlendFunction.SKIP);
     const reset = () => {
       features.dpr = null; features.reflection = true; floorU.uReflPower.value = 1;
-      setBeams('spot', true); setBeams('wash', true); setCheap(false); setBloom(true);
+      setBeams('spot', true); setBeams('wash', true); setCheap(q.cheap); setBloom(true);
       composer.multisampling = q.msaa; arena.anim.crowd.visible = true; arena.anim.flares.visible = true;
     };
     const dpr1 = Math.min(1, q.dpr);
     const configs = [
-      ['full (as shipped)', () => {}],
+      [`as shipped (${q.profile})`, () => {}],
       ['render 1.0x', () => { features.dpr = dpr1; }],
       ['1.0x, no reflection', () => { features.dpr = dpr1; features.reflection = false; floorU.uReflPower.value = 0; }],
       ['1.0x, no wash beams', () => { features.dpr = dpr1; setBeams('wash', false); }],

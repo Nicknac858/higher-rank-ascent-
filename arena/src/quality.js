@@ -32,13 +32,24 @@ export function detectQuality(params) {
   if (forced === 'low') tier = 1;
   else if (forced === 'mid') tier = 2;
   else if (forced === 'high') tier = 3;
-  const q = { ...TIERS[tier], mobile, software, gpu: gpu.renderer, ok: true };
+  const q = { ...TIERS[tier], mobile, software, gpu: gpu.renderer, ok: true, profile: 'full', smaa: false, cheap: false, reflEvery: 1, reflHide: false, bloomScale: 1, targetMs: 21 };
+  // Built-in laptop/desktop graphics (measured on an Intel HD 530): keep native resolution
+  // and cut the costly effects instead — MSAA and the full reflection were the big ones.
+  const integrated = !mobile && /intel|iris|uhd graphics|hd graphics|radeon\(tm\) graphics|radeon vega|mali|powervr/i.test(gpu.renderer) && !/arc/i.test(gpu.renderer);
+  if ((integrated && !forced) || forced === 'light') {
+    Object.assign(q, { tier: 2, profile: 'light', msaa: 0, smaa: true, cheap: true, refl: 0.3, reflEvery: 2, reflHide: true, bloomScale: 0.5, washes: 0, crowd: 14000, dust: 260, realSpots: 2, targetMs: 36 });
+  }
   if (mobile) {
     q.dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     q.refl = 0.36;
     q.crowd = Math.min(q.crowd, 10000);
     q.dust = Math.min(q.dust, 240);
     q.msaa = 4;
+  } else if (q.profile === 'light') {
+    // native resolution (up to ~1080p worth of pixels on hi-dpi screens)
+    const dev = window.devicePixelRatio || 1;
+    const css = Math.max(1, innerWidth * innerHeight);
+    q.dpr = Math.max(1, Math.min(dev, Math.sqrt(2.2e6 / css)));
   } else {
     // Desktop renders above native resolution where the pixel budget allows, so fine
     // lines (truss lacing, LED strips, rails) stay crisp; the governor backs off if slow.
@@ -62,8 +73,10 @@ const STEPS = [
 ];
 
 export class Governor {
-  constructor(onChange) {
+  constructor(onChange, targetMs = 21) {
     this.onChange = onChange;
+    this.slowMs = targetMs;
+    this.fastMs = Math.max(12, targetMs * 0.55);
     this.step = 0;
     this.ema = 16.7;
     this.slow = 0;
@@ -83,11 +96,11 @@ export class Governor {
     this.ema = this.ema * (1 - k) + d * k;
     const settled = this.frames >= 30 || (nowMs - this.start > 2500 && this.frames >= 4);
     if (!settled) return;
-    if (this.ema > 21) { this.slow += Math.max(1, Math.round(d / 16.7)); this.fast = 0; } else if (this.ema < 13) { this.fast++; this.slow = 0; } else { this.slow = 0; this.fast = 0; }
+    if (this.ema > this.slowMs) { this.slow += Math.max(1, Math.round(d / 16.7)); this.fast = 0; } else if (this.ema < this.fastMs) { this.fast++; this.slow = 0; } else { this.slow = 0; this.fast = 0; }
     if (nowMs - this.last < 1500) return;
     if (this.slow > 45 && this.step < STEPS.length - 1) {
-      // far too slow (under ~16 fps): skip a step
-      this.step = Math.min(STEPS.length - 1, this.step + (this.ema > 60 ? 2 : 1));
+      // far too slow: skip a step
+      this.step = Math.min(STEPS.length - 1, this.step + (this.ema > this.slowMs * 2.8 ? 2 : 1));
       this.last = nowMs;
       this.slow = 0;
       this.onChange(STEPS[this.step]);

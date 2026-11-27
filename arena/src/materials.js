@@ -201,6 +201,7 @@ export function floorMaterial() {
       uRingColor: { value: new THREE.Color(0x2f7dff) },
       uAccentColor: { value: new THREE.Color(0x2f7dff) },
       uReflPower: { value: 1 },
+      uCheap: { value: 0 },
       uPools: { value: pools },
       uPoolCols: { value: poolCols },
       ...fogUniforms,
@@ -223,7 +224,7 @@ export function floorMaterial() {
       uniform sampler2D tRefl;
       uniform sampler2D tReflBlur;
       uniform vec3 uCamPos;
-      uniform float uTime, uRings, uReflPower;
+      uniform float uTime, uRings, uReflPower, uCheap;
       uniform vec3 uRingColor;
       uniform vec3 uAccentColor;
       uniform vec4 uPools[${MAX_POOLS}];
@@ -236,9 +237,9 @@ export function floorMaterial() {
       void main(){
         vec2 p = vWorld.xz;
         float r = length(p);
-        float n1 = fbm2(p * 0.22);
+        float n1 = uCheap > 0.5 ? vnoise2(p * 0.3) : fbm2(p * 0.22);
         float n2 = vnoise2(p * 9.0);
-        vec2 distort = (vec2(fbm2(p * 1.3), fbm2(p * 1.3 + 5.2)) - 0.5) * 0.012;
+        vec2 distort = uCheap > 0.5 ? (vec2(n1, vnoise2(p * 1.3 + 5.2)) - 0.5) * 0.01 : (vec2(fbm2(p * 1.3), fbm2(p * 1.3 + 5.2)) - 0.5) * 0.012;
         vec4 ruv = vRefl;
         ruv.xy += distort * ruv.w;
         vec3 sharp = texture2DProj(tRefl, ruv).rgb;
@@ -506,6 +507,7 @@ export function hazeMaterial(color = 0x3a6dff) {
       uColor: { value: new THREE.Color(color) },
       uIntensity: { value: 0 },
       uTime: { value: 0 },
+      uCheap: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -522,14 +524,15 @@ export function hazeMaterial(color = 0x3a6dff) {
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
-      uniform float uIntensity, uTime;
+      uniform float uIntensity, uTime, uCheap;
       varying vec2 vUv;
       ${NOISE}
       void main(){
         vec2 p = vUv - 0.5;
         float r = length(p) * 2.0;
         float g = exp(-r * r * 3.2);
-        float n = 0.65 + 0.7 * fbm2(vUv * 3.0 + vec2(uTime * 0.01, -uTime * 0.015));
+        if (g * uIntensity < 0.0004) discard;
+        float n = uCheap > 0.5 ? 1.0 : 0.65 + 0.7 * fbm2(vUv * 3.0 + vec2(uTime * 0.01, -uTime * 0.015));
         gl_FragColor = vec4(uColor * g * n * uIntensity, 1.0);
       }
     `,
