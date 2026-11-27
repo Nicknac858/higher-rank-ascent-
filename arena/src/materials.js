@@ -23,7 +23,7 @@ void main(){
 
 // LED wall: content sampled per LED cell and drawn as round diodes that blend to an
 // even glow at distance (no moire). uBoot wipes the panel on with a flicker.
-export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side = THREE.FrontSide, flip = false, dot = 0.36, planar = false }) {
+export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side = THREE.FrontSide, flip = false, dot = 0.36, planar = false, cab = [16, 16] }) {
   return new THREE.ShaderMaterial({
     side,
     uniforms: {
@@ -37,6 +37,7 @@ export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side 
       uBoot: { value: 0 },
       uFlip: { value: flip ? 1 : 0 },
       uDot: { value: dot },
+      uCab: { value: new THREE.Vector2(cab[0], cab[1]) },
       uPlanar: { value: planar ? 1 : 0 },
       ...fogUniforms,
     },
@@ -46,6 +47,7 @@ export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side 
       uniform vec2 uGrid;
       uniform vec3 uTint;
       uniform float uIntensity, uOffset, uRepeat, uTime, uBoot, uFlip, uDot, uPlanar;
+      uniform vec2 uCab;
       varying vec2 vUv;
       varying float vDist;
       varying vec3 vWorld;
@@ -54,23 +56,29 @@ export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side 
       void main(){
         vec2 uv0 = vUv;
         if (uFlip > 0.5) uv0.x = 1.0 - uv0.x;
-        vec2 uv = vec2(fract(uv0.x * uRepeat + uOffset), uv0.y);
-        vec2 g = uv * uGrid;
+        // diodes stay fixed; content scrolls across them, stepping LED to LED like a real wall
+        vec2 g = uv0 * uGrid;
         vec2 cell = floor(g);
         vec2 f = fract(g) - 0.5;
-        vec2 suv = (cell + 0.5) / uGrid;
+        vec2 cuv = (cell + 0.5) / uGrid;
+        vec2 suv = vec2(fract(cuv.x * uRepeat + uOffset), cuv.y);
         vec3 c = texture2D(map, suv).rgb;
-        float px = length(fwidth(uv0 * uGrid));
+        float px = length(fwidth(g));
         float d = length(f);
         float dotm = 1.0 - smoothstep(uDot - px * 0.7, uDot + px * 0.7, d);
         float cover = 3.14159 * uDot * uDot;
         float m = mix(dotm, cover, smoothstep(0.22, 0.65, px)) / cover;
+        // cabinet seams between LED panels, fading out before they could shimmer
+        vec2 cd = abs(fract(g / uCab + 0.5) - 0.5) * uCab;
+        float seam = max(1.0 - smoothstep(0.1, 0.1 + px, cd.x), 1.0 - smoothstep(0.1, 0.1 + px, cd.y));
+        seam *= 1.0 - smoothstep(0.3, 0.75, px);
+        vec2 uv = cuv;
         // boot: top-down wipe with a stuttering scan
         float wipe = smoothstep(0.0, 0.06, uBoot * 1.12 - (1.0 - uv.y));
         float stutter = uBoot < 0.999 ? (0.45 + 0.55 * step(0.35, hash12(vec2(floor(uTime * 30.0), cell.y * 0.13)))) : 1.0;
         float scan = 0.92 + 0.08 * sin((uv.y * 2.0 - uTime * 0.35) * 6.2831);
         vec3 base = vec3(0.010, 0.012, 0.018) * dotm;
-        vec3 col = c * uTint * uIntensity * m * wipe * stutter * scan + base;
+        vec3 col = (c * uTint * uIntensity * m * wipe * stutter * scan + base) * (1.0 - 0.9 * seam);
         gl_FragColor = vec4(applyFog(col, vDist), 1.0);
       }
     `,
@@ -260,8 +268,18 @@ export function floorMaterial() {
   });
 }
 
-// Crowd lights on the bowl: phone flashes, LED wristbands and dim silhouettes.
+// Crowd lights on the bowl. Motion is built so it never reads as a loop: every person
+// sways at their own tempo with a phase that wanders, whole sections get livelier and
+// calmer on a slow noise field, phones come up and go down at random moments, wristbands
+// follow a drifting show pattern, and beams sweeping the bowl light up whoever they touch.
+export const CROWD_BEAMS = 4;
 export function crowdMaterial() {
+  const beams = [];
+  const beamCols = [];
+  for (let i = 0; i < CROWD_BEAMS; i++) {
+    beams.push(new THREE.Vector4(0, -100, 0, 1));
+    beamCols.push(new THREE.Vector3(0, 0, 0));
+  }
   return new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -272,41 +290,77 @@ export function crowdMaterial() {
       uScale: { value: 600 },
       uWave: { value: 0 },
       uWaveOn: { value: 0 },
+      uWaveWidth: { value: 30 },
       uWaveColor: { value: new THREE.Color(0x73b3ff) },
-      uPixelRatio: { value: 1 },
+      uAccent: { value: new THREE.Color(0x4f8dff) },
+      uBeams: { value: beams },
+      uBeamCols: { value: beamCols },
+      uMotion: { value: 1 },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
       attribute vec4 aData;
-      uniform float uTime, uPower, uScale, uWave, uWaveOn, uFogDensity;
-      uniform vec3 uWaveColor;
+      uniform float uTime, uPower, uScale, uWave, uWaveOn, uWaveWidth, uFogDensity, uMotion;
+      uniform vec3 uWaveColor, uAccent;
+      uniform vec4 uBeams[${CROWD_BEAMS}];
+      uniform vec3 uBeamCols[${CROWD_BEAMS}];
       varying vec3 vColor;
       varying float vAlpha;
+      ${NOISE}
       void main(){
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vec3 base = position;
+        float r1 = aData.x;
+        float r2 = hash13(base * 3.17 + 1.3);
+        float r3 = hash13(base * 0.73 + 7.9);
+        float ang = atan(base.x, base.z);
+        float rad = max(length(base.xz), 0.001);
+        float t = uTime * uMotion;
+
+        float energy = smoothstep(0.15, 0.95, vnoise3(vec3(ang * 5.0, base.y * 0.12, t * 0.045 + 3.0)));
+        float tempo = 1.6 + r2 * 2.2;
+        float wander = vnoise3(vec3(r1 * 40.0, t * 0.07, r3 * 20.0)) * 5.0;
+        float sway = sin(t * tempo + r1 * 6.2831 + wander);
+        vec3 tang = vec3(base.z, 0.0, -base.x) / rad;
+        vec3 p = base + tang * sway * (0.035 + 0.11 * energy) * uMotion;
+        p.y += (0.5 + 0.5 * sin(t * tempo * 0.9 + r3 * 6.2831 + wander * 0.6)) * 0.05 * energy * uMotion;
+
+        float kind = aData.y;
+        vec3 col = vec3(0.0);
+        float a = 0.0;
+        if (kind < 0.12) {
+          float raise = smoothstep(0.58, 0.74, vnoise3(vec3(r1 * 13.0 + ang * 2.0, r2 * 7.0, t * 0.035 + r3 * 31.0)));
+          p.y += raise * 0.38;
+          float flick = 0.85 + 0.15 * sin(t * (7.0 + r2 * 9.0) + r3 * 40.0);
+          col = vec3(0.86, 0.9, 1.0) * 1.6 * flick;
+          a = raise;
+        } else if (kind < 0.40) {
+          float cue = vnoise3(vec3(ang * 2.2 - t * 0.11, base.y * 0.09 + t * 0.02, t * 0.03));
+          float lvl = 0.16 + 0.84 * smoothstep(0.42, 0.72, cue) * (0.7 + 0.3 * energy);
+          vec3 blue = mix(vec3(0.05, 0.22, 1.0), vec3(0.25, 0.55, 1.0), r2);
+          col = mix(blue, uAccent, step(0.68, r3)) * 1.1;
+          a = lvl;
+        }
+
+        float lit = 0.0;
+        vec3 litCol = vec3(0.0);
+        for (int i = 0; i < ${CROWD_BEAMS}; i++) {
+          vec3 d = base - uBeams[i].xyz;
+          float k = exp(-dot(d, d) / (uBeams[i].w * uBeams[i].w));
+          lit += k;
+          litCol += uBeamCols[i] * k;
+        }
+        col += litCol * 1.4;
+        a = max(a, min(1.0, lit) * (0.3 + 0.7 * r2));
+
+        float dA = abs(mod(ang - uWave + 3.14159, 6.28318) - 3.14159);
+        float wave = exp(-dA * dA * uWaveWidth) * uWaveOn * step(kind, 0.62);
+        col += uWaveColor * wave * 2.0;
+        a = max(a, wave);
+        a *= step(aData.w, uPower);
+
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
         float dist = -mv.z;
-        float kind = aData.y;
-        float ang = atan(position.x, position.z);
-        float dA = abs(mod(ang - uWave + 3.14159, 6.28318) - 3.14159);
-        float wave = exp(-dA * dA * 30.0) * uWaveOn;
-        vec3 col;
-        float a;
-        if (kind < 0.03) {
-          float tw = 0.5 + 0.5 * sin(uTime * (1.2 + aData.x * 2.5) + aData.x * 40.0);
-          col = vec3(0.82, 0.88, 1.0) * 1.5;
-          a = tw;
-        } else if (kind < 0.30) {
-          float beat = 0.25 + 0.75 * pow(0.5 + 0.5 * sin(uTime * 1.9 - ang * 3.0 + aData.x * 0.6), 3.0);
-          col = mix(vec3(0.05, 0.22, 1.0), vec3(0.25, 0.55, 1.0), aData.x) * 1.05;
-          a = beat;
-        } else {
-          col = vec3(0.0);
-          a = 0.0;
-        }
-        col += uWaveColor * wave * 2.2 * step(0.0, 0.62 - kind);
-        a = max(a, wave * step(0.0, 0.62 - kind));
-        a *= step(aData.w, uPower);
         float fd = uFogDensity * dist;
         float fog = exp(-fd * fd * 1.6);
         float s = aData.z * uScale / max(dist, 0.1);
@@ -322,6 +376,59 @@ export function crowdMaterial() {
         float d = length(gl_PointCoord - 0.5);
         float m = smoothstep(0.5, 0.1, d);
         gl_FragColor = vec4(vColor * vAlpha * m, 1.0);
+      }
+    `,
+  });
+}
+
+// Lens points on every fixture: a hard core with a thin anamorphic streak and a faint
+// four-point star. Sized in screen pixels so they stay crisp at any distance.
+export function flareMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uScale: { value: 600 },
+      uPixel: { value: 1 },
+    },
+    vertexShader: /* glsl */ `
+      attribute vec3 aColor;
+      attribute float aIntensity;
+      uniform float uScale;
+      uniform float uPixel;
+      varying vec2 vP;
+      varying vec3 vColor;
+      varying float vI;
+      void main(){
+        vec4 c = viewMatrix * modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+        float dist = max(-c.z, 0.1);
+        float core = 3.0 * uPixel;
+        float streak = (34.0 + 26.0 * aIntensity) * uPixel;
+        vec2 sizePx = vec2(streak * 2.0, core * 5.0);
+        vec2 world = sizePx * dist / uScale;
+        vP = position.xy * sizePx;
+        c.xy += position.xy * world;
+        gl_Position = projectionMatrix * c;
+        vColor = aColor;
+        vI = aIntensity;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uPixel;
+      varying vec2 vP;
+      varying vec3 vColor;
+      varying float vI;
+      void main(){
+        vec2 p = vP / uPixel;
+        float r2 = dot(p, p);
+        float core = exp(-r2 / 3.2) * 3.2 + exp(-r2 / 22.0) * 0.5;
+        float streak = exp(-abs(p.y) / 0.55) * exp(-abs(p.x) / 26.0) * 0.55;
+        float star = exp(-abs(p.x) / 0.5) * exp(-abs(p.y) / 6.0) * 0.35;
+        vec3 tint = mix(vColor, vec3(1.0), 0.55);
+        vec3 col = tint * core + mix(vColor, vec3(0.6, 0.75, 1.0), 0.4) * (streak + star);
+        gl_FragColor = vec4(col * vI, 1.0);
       }
     `,
   });

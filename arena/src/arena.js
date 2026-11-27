@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   ledMaterial, stripMaterial, beamMaterial, floorMaterial, crowdMaterial,
-  bokehMaterial, hazeMaterial, MAX_POOLS,
+  bokehMaterial, hazeMaterial, flareMaterial, MAX_POOLS,
 } from './materials.js';
 import { makeHaloTexture, makeTickerTexture, makeUndersideTexture, makeMonitorTexture } from './textures.js';
 
@@ -171,7 +171,7 @@ export function buildArena({ quality, renderer, accent = null }) {
   const fasciaTex = makeTickerTexture({ items: tickerItems, height: 96 });
   const fascia = new THREE.Mesh(
     new THREE.CylinderGeometry(DIM.stageR + 0.02, DIM.stageR + 0.02, 0.36, 320, 1, true),
-    ledMaterial({ map: fasciaTex, grid: [1700, 13], intensity: 2.2, dot: 0.38 }),
+    ledMaterial({ map: fasciaTex, grid: [1700, 13], intensity: 2.2, dot: 0.38, cab: [26, 13] }),
   );
   fascia.material.uniforms.uRepeat.value = 4;
   fascia.position.y = 0.56;
@@ -262,14 +262,14 @@ export function buildArena({ quality, renderer, accent = null }) {
   const haloGrid = [Math.round((TAU * DIM.haloR) / 0.03), Math.round(DIM.haloH / 0.03)];
   const outer = new THREE.Mesh(
     new THREE.CylinderGeometry(DIM.haloR, DIM.haloR, DIM.haloH, 256, 1, true),
-    ledMaterial({ map: haloTex, grid: haloGrid, intensity: 2.4 }),
+    ledMaterial({ map: haloTex, grid: haloGrid, intensity: 2.4, cab: [24, 29] }),
   );
   outer.position.y = DIM.haloY;
   halo.add(outer);
   anim.leds.push({ mesh: outer, group: 'halo', speed: 0 });
   const inner = new THREE.Mesh(
     new THREE.CylinderGeometry(DIM.haloR - 0.12, DIM.haloR - 0.12, DIM.haloH, 256, 1, true),
-    ledMaterial({ map: haloTex, grid: haloGrid, intensity: 1.6, side: THREE.BackSide, flip: true }),
+    ledMaterial({ map: haloTex, grid: haloGrid, intensity: 1.6, side: THREE.BackSide, flip: true, cab: [24, 29] }),
   );
   inner.position.y = DIM.haloY;
   halo.add(inner);
@@ -298,7 +298,7 @@ export function buildArena({ quality, renderer, accent = null }) {
   const tickGrid = [Math.round((TAU * DIM.tickR) / 0.028), Math.round(DIM.tickH / 0.028)];
   const tick = new THREE.Mesh(
     new THREE.CylinderGeometry(DIM.tickR, DIM.tickR, DIM.tickH, 200, 1, true),
-    ledMaterial({ map: tickTex, grid: tickGrid, intensity: 2.2 }),
+    ledMaterial({ map: tickTex, grid: tickGrid, intensity: 2.2, cab: [24, 28] }),
   );
   tick.position.y = DIM.tickY;
   halo.add(tick);
@@ -323,7 +323,7 @@ export function buildArena({ quality, renderer, accent = null }) {
 
   // underside dial
   const underTex = makeUndersideTexture();
-  const under = new THREE.Mesh(new THREE.CircleGeometry(DIM.tickR - 0.1, 160), ledMaterial({ map: underTex, grid: [220, 220], intensity: 1.1, planar: true }));
+  const under = new THREE.Mesh(new THREE.CircleGeometry(DIM.tickR - 0.1, 160), ledMaterial({ map: underTex, grid: [220, 220], intensity: 1.1, planar: true, cab: [22, 22] }));
   under.rotation.x = Math.PI / 2;
   under.position.y = tickBot - 0.02;
   halo.add(under);
@@ -405,6 +405,63 @@ export function buildArena({ quality, renderer, accent = null }) {
     });
   }
 
+  // lens points on every fixture (crisp cores with a thin anamorphic streak)
+  {
+    const flareGeo = new THREE.PlaneGeometry(1, 1);
+    const n = anim.beams.length;
+    const colors = new Float32Array(n * 3);
+    anim.beams.forEach((b, i) => {
+      const c = b.kind === 'wash' ? b.color.clone().lerp(new THREE.Color(0xffffff), 0.35) : b.color;
+      colors.set([c.r, c.g, c.b], i * 3);
+    });
+    flareGeo.setAttribute('aColor', new THREE.InstancedBufferAttribute(colors, 3));
+    const ia = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
+    ia.setUsage(THREE.DynamicDrawUsage);
+    flareGeo.setAttribute('aIntensity', ia);
+    const flares = new THREE.InstancedMesh(flareGeo, flareMaterial(), n);
+    flares.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    flares.frustumCulled = false;
+    flares.renderOrder = 6;
+    root.add(flares);
+    anim.flares = flares;
+  }
+
+  // hoists: chain motors over the trusses, chains up into the roof
+  {
+    const geos = [];
+    const hoist = (R, Y, n, off) => {
+      for (let i = 0; i < n; i++) {
+        const t = ((i + off) / n) * TAU;
+        const p = polar(R, t, Y + 0.66);
+        geos.push(new THREE.BoxGeometry(0.34, 0.46, 0.3).translate(p.x, p.y, p.z));
+        const len = 46.5 - (Y + 0.9);
+        const chain = new THREE.CylinderGeometry(0.022, 0.022, len, 5);
+        chain.translate(p.x, Y + 0.9 + len / 2, p.z);
+        geos.push(chain);
+        const bar = new THREE.BoxGeometry(0.06, 0.06, 1.0);
+        bar.rotateY(t);
+        bar.translate(p.x, Y + 0.4, p.z);
+        geos.push(bar);
+      }
+    };
+    hoist(DIM.trussR, DIM.trussY, 8, 0.25);
+    hoist(DIM.outerR, DIM.outerY, 12, 0.5);
+    root.add(new THREE.Mesh(merge(geos), M.metalDark));
+  }
+
+  // crowd barrier around the floor
+  {
+    const wallMat = M.metalDark.clone();
+    wallMat.side = THREE.DoubleSide;
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(24.3, 24.3, 1.1, 256, 1, true), wallMat);
+    wall.position.y = 0.55;
+    root.add(wall);
+    root.add(new THREE.Mesh(flatTorus(24.3, 0.045, 1.12, 6, 400), M.metal));
+    const led = new THREE.Mesh(flatTorus(24.26, 0.016, 0.9, 6, 400), stripMaterial({ color: 0x2f7dff, intensity: 1.5 }));
+    root.add(led);
+    anim.strips.push({ mat: led.material, group: 'rings' });
+  }
+
   // light column from the pedestal up into the halo
   const colGeo = new THREE.CylinderGeometry(0.004, Math.tan(THREE.MathUtils.degToRad(9)), 1, 36, 1, true);
   colGeo.translate(0, -0.5, 0);
@@ -483,7 +540,7 @@ export function buildArena({ quality, renderer, accent = null }) {
   const ribbonTex = makeTickerTexture({ items: tickerItems, height: 96, fg: '#cfe2ff', band: '#0a2a80' });
   const ribbon = new THREE.Mesh(
     new THREE.CylinderGeometry(43.37, 43.37, 1.15, 360, 1, true),
-    ledMaterial({ map: ribbonTex, grid: [Math.round((TAU * 43.37) / 0.05), 23], intensity: 0.24, side: THREE.BackSide, flip: true }),
+    ledMaterial({ map: ribbonTex, grid: [Math.round((TAU * 43.37) / 0.05), 23], intensity: 0.24, side: THREE.BackSide, flip: true, cab: [32, 23] }),
   );
   ribbon.material.uniforms.uRepeat.value = 6;
   ribbon.position.y = 12.25;
@@ -537,6 +594,7 @@ export function buildArena({ quality, renderer, accent = null }) {
     g.setAttribute('aData', new THREE.BufferAttribute(data, 4));
     const crowd = new THREE.Points(g, crowdMaterial());
     if (ACC) crowd.material.uniforms.uWaveColor.value.setHex(ACC);
+    crowd.material.uniforms.uAccent.value.setHex(ACC ?? 0x4f8dff);
     crowd.frustumCulled = false;
     root.add(crowd);
     anim.crowd = crowd;
@@ -646,7 +704,10 @@ export function buildArena({ quality, renderer, accent = null }) {
     for (let i = poolIdx; i < MAX_POOLS; i++) poolCols[i].set(0, 0, 0);
   }
 
-  function update({ time, power, motion = 1, camera, viewHeight }) {
+  const _m4 = new THREE.Matrix4();
+  const _lens = new THREE.Vector3();
+  const _toCam = new THREE.Vector3();
+  function update({ time, power, motion = 1, camera, viewHeight, pixelRatio = 1 }) {
     const P = power;
     for (const l of anim.leds) {
       const u = l.mesh.material.uniforms;
@@ -696,7 +757,39 @@ export function buildArena({ quality, renderer, accent = null }) {
     cu.uPower.value = P.crowd;
     cu.uWave.value = P.waveAngle;
     cu.uWaveOn.value = P.waveOn;
+    cu.uWaveWidth.value = P.waveWidth || 30;
+    cu.uMotion.value = motion;
     cu.uScale.value = viewHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    {
+      const cb = cu.uBeams.value;
+      const cbc = cu.uBeamCols.value;
+      let ci = 0;
+      for (const b of anim.beams) {
+        if (!b.toCrowd || ci >= cb.length) continue;
+        const radius = Math.max(1.4, b.len * Math.tan(b.half) * 1.8);
+        cb[ci].set(b.target.x, b.target.y, b.target.z, radius);
+        const k = (b.power || 0) * 0.6;
+        cbc[ci].set(b.color.r * k, b.color.g * k, b.color.b * k);
+        ci++;
+      }
+    }
+
+    {
+      const fl = anim.flares;
+      const fi = fl.geometry.attributes.aIntensity;
+      anim.beams.forEach((b, i) => {
+        _lens.copy(b.pos).addScaledVector(b.dir, b.kind === 'wash' ? 0.25 : 0.42);
+        _m4.makeTranslation(_lens.x, _lens.y, _lens.z);
+        fl.setMatrixAt(i, _m4);
+        _toCam.subVectors(camera.position, _lens).normalize();
+        const facing = Math.max(0, b.dir.dot(_toCam));
+        fi.array[i] = (b.power || 0) * (b.kind === 'wash' ? 0.22 : 0.5) * (0.5 + 1.8 * Math.pow(facing, 3));
+      });
+      fl.instanceMatrix.needsUpdate = true;
+      fi.needsUpdate = true;
+      fl.material.uniforms.uScale.value = cu.uScale.value;
+      fl.material.uniforms.uPixel.value = pixelRatio;
+    }
 
     const du = anim.dust.material.uniforms;
     du.uTime.value = time;

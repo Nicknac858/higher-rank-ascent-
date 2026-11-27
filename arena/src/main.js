@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import Lenis from 'lenis';
 import {
   EffectComposer, RenderPass, EffectPass, BloomEffect, ToneMappingEffect, ToneMappingMode,
-  VignetteEffect, ChromaticAberrationEffect, Effect,
+  VignetteEffect, ChromaticAberrationEffect, Effect, EffectAttribute,
 } from 'postprocessing';
 import { buildArena, buildEnvironment } from './arena.js';
 import { fogUniforms, screenMaterial } from './materials.js';
@@ -137,6 +137,31 @@ class GrainEffect extends Effect {
   }
 }
 
+// Contrast-adaptive sharpening after tone mapping: crisp fine lines without halos.
+class SharpenEffect extends Effect {
+  constructor({ amount = 0.55 } = {}) {
+    super('SharpenEffect', /* glsl */ `
+      uniform float uSharp;
+      void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor){
+        vec3 c = inputColor.rgb;
+        vec3 a = texture2D(inputBuffer, uv + vec2(-texelSize.x, 0.0)).rgb;
+        vec3 b = texture2D(inputBuffer, uv + vec2(0.0, -texelSize.y)).rgb;
+        vec3 d = texture2D(inputBuffer, uv + vec2(texelSize.x, 0.0)).rgb;
+        vec3 e = texture2D(inputBuffer, uv + vec2(0.0, texelSize.y)).rgb;
+        vec3 mn = min(min(min(a, b), min(d, e)), c);
+        vec3 mx = max(max(max(a, b), max(d, e)), c);
+        vec3 amp = sqrt(clamp(min(mn, 2.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
+        vec3 w = amp * (-1.0 / mix(8.0, 5.0, uSharp));
+        vec3 res = (c + (a + b + d + e) * w) / (1.0 + 4.0 * w);
+        outputColor = vec4(max(res, vec3(0.0)), inputColor.a);
+      }
+    `, {
+      attributes: EffectAttribute.CONVOLUTION,
+      uniforms: new Map([['uSharp', new THREE.Uniform(amount)]]),
+    });
+  }
+}
+
 const damp = (a, b, lambda, dt) => a + (b - a) * (1 - Math.exp(-lambda * dt));
 
 async function boot() {
@@ -206,12 +231,14 @@ async function boot() {
   const toneMode = params.get('tone') === 'agx' ? ToneMappingMode.AGX : ToneMappingMode.ACES_FILMIC;
   const tone = new ToneMappingEffect({ mode: toneMode });
   const vignette = new VignetteEffect({ offset: 0.3, darkness: 0.62 });
-  const ca = new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.0006, 0.0004), radialModulation: true, modulationOffset: 0.22 });
-  const grain = new GrainEffect({ amount: 0.028, haze: 1 });
-  const effects = q.tier >= 2 ? [ca, bloom, tone, vignette, grain] : [bloom, tone, vignette, grain];
-  const effectPass = new EffectPass(camera, ...effects);
-  effectPass.dithering = true;
-  composer.addPass(effectPass);
+  const ca = new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.00022, 0.00014), radialModulation: true, modulationOffset: 0.45 });
+  const grain = new GrainEffect({ amount: 0.02, haze: 1 });
+  const sharpen = new SharpenEffect({ amount: q.mobile ? 0.35 : 0.6 });
+  const effects = q.tier >= 2 ? [ca, bloom, tone, vignette] : [bloom, tone, vignette];
+  composer.addPass(new EffectPass(camera, ...effects));
+  const finishPass = new EffectPass(camera, sharpen, grain);
+  finishPass.dithering = true;
+  composer.addPass(finishPass);
 
   // ---------- sizing ----------
   let viewH = innerHeight;
@@ -264,12 +291,30 @@ async function boot() {
     let screenFocus = 0;
     for (let i = 0; i < 3; i++) screenFocus = Math.max(screenFocus, serviceState(i, T).focus);
     power.screenFocus = screenFocus;
-    arena.update({ time, power, motion: MOTION ? 1 : 0, camera, viewHeight: viewH });
+    arena.update({ time, power, motion: MOTION ? 1 : 0, camera, viewHeight: viewH, pixelRatio: renderer.getPixelRatio() });
     arena.anim.dust.material.uniforms.uFocus.value = focusDist;
     arena.anim.dust.material.uniforms.uAperture.value = (mobile ? 26 : 38) * (viewH / 1000);
     scene.updateMatrixWorld();
     reflection.update(scene, camera, arena.floor);
     composer.render(dt);
+  }
+
+  // #stats on the link (or ?stats) shows frame rate and render resolution for tuning.
+  let statsEl = null;
+  if (location.hash === '#stats' || params.has('stats')) {
+    statsEl = document.createElement('div');
+    statsEl.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font:500 12px/1.4 ui-monospace,monospace;color:#cfe2ff;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre';
+    document.body.appendChild(statsEl);
+  }
+  let fpsEma = 60;
+  let statsAt = 0;
+  function updateStats(dtMs, now) {
+    if (!statsEl || dtMs <= 0) return;
+    fpsEma = fpsEma * 0.94 + (1000 / dtMs) * 0.06;
+    if (now - statsAt < 400) return;
+    statsAt = now;
+    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    statsEl.textContent = `${fpsEma.toFixed(0)} fps\n${size.x}x${size.y} (${renderer.getPixelRatio().toFixed(2)}x)\nMSAA ${q.msaa} · tier ${q.tier} · step ${gov.step}\n${q.gpu.slice(0, 48)}`;
   }
 
   let raf = 0;
@@ -288,6 +333,7 @@ async function boot() {
     renderFrame({ T: camT, time: now / 1000, elapsed: (now - startTime) / 1000, dt });
     updateDOM(camT);
     gov.sample(dtMs, now);
+    updateStats(dtMs, now);
   }
 
   canvas.addEventListener('webglcontextlost', (e) => {

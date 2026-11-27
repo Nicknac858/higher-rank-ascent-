@@ -40,7 +40,14 @@ export function detectQuality(params) {
     q.dust = Math.min(q.dust, 240);
     q.msaa = 4;
   } else {
-    q.dpr = Math.min(window.devicePixelRatio || 1, q.dpr);
+    // Desktop renders above native resolution where the pixel budget allows, so fine
+    // lines (truss lacing, LED strips, rails) stay crisp; the governor backs off if slow.
+    const dev = window.devicePixelRatio || 1;
+    const want = tier === 3 ? Math.min(2, Math.max(dev, 1.5)) : tier === 2 ? Math.min(1.5, Math.max(dev, 1.25)) : 1;
+    const budget = tier === 3 ? 5.2e6 : 3.4e6;
+    const css = Math.max(1, innerWidth * innerHeight);
+    q.dpr = Math.max(1, Math.min(want, Math.sqrt(budget / css)));
+    q.msaa = q.dpr >= 1.45 ? 2 : q.msaa;
   }
   return q;
 }

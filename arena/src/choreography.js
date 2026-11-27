@@ -89,22 +89,39 @@ export function powerAt(elapsed, instant = false) {
   for (const [key, [start, dur]] of Object.entries(SCHEDULE)) {
     p[key] = instant ? 1 : clamp((elapsed - start) / dur, 0, 1);
   }
-  // A light wave travels once around the crowd after power-up, then every 18 s.
-  const first = 4.2;
-  const period = 18;
-  const dur = 3.4;
-  let local = -1;
-  if (!instant && elapsed > first) local = ((elapsed - first) % period) / dur;
-  else if (instant) local = -1;
-  if (local >= 0 && local <= 1) {
-    p.waveAngle = Math.PI * 0.15 + local * Math.PI * 2;
-    p.waveOn = Math.sin(local * Math.PI);
-  } else {
-    p.waveAngle = 0;
-    p.waveOn = 0;
+  // Crowd waves on an irregular schedule: different gaps, speeds, directions and spans.
+  p.waveAngle = 0;
+  p.waveOn = 0;
+  p.waveWidth = 30;
+  if (!instant) {
+    for (const w of WAVES) {
+      if (w.start > elapsed) break;
+      const k = (elapsed - w.start) / w.dur;
+      if (k >= 0 && k <= 1) {
+        p.waveAngle = w.a0 + w.dir * w.span * k;
+        p.waveOn = Math.sin(k * Math.PI);
+        p.waveWidth = w.width;
+        break;
+      }
+    }
   }
   return p;
 }
+
+const WAVES = (() => {
+  let seed = 90871;
+  const r = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const list = [];
+  let t = 4.2;
+  for (let i = 0; i < 240; i++) {
+    const full = r() < 0.6;
+    const span = full ? Math.PI * 2 : Math.PI * (0.7 + r() * 0.9);
+    const speed = 1.4 + r() * 1.3;
+    list.push({ start: t, dur: span / speed, dir: r() < 0.5 ? -1 : 1, span, a0: r() * Math.PI * 2, width: 16 + r() * 34 });
+    t += span / speed + 9 + r() * 24;
+  }
+  return list;
+})();
 
 // Broadcast screen paths in camera space. [x, y] are fractions of the half-extent of the
 // view at that depth, z is depth (negative = in front), then yaw, pitch, roll in radians.
