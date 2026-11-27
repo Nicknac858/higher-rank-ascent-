@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import Lenis from 'lenis';
 import {
   EffectComposer, RenderPass, EffectPass, BloomEffect, ToneMappingEffect, ToneMappingMode,
-  VignetteEffect, ChromaticAberrationEffect, Effect, EffectAttribute,
+  VignetteEffect, ChromaticAberrationEffect, Effect, EffectAttribute, BlendFunction,
 } from 'postprocessing';
 import { buildArena, buildEnvironment } from './arena.js';
 import { fogUniforms, screenMaterial } from './materials.js';
@@ -235,7 +235,8 @@ async function boot() {
   const grain = new GrainEffect({ amount: 0.02, haze: 1 });
   const sharpen = new SharpenEffect({ amount: q.mobile ? 0.35 : 0.6 });
   const effects = q.tier >= 2 ? [ca, bloom, tone, vignette] : [bloom, tone, vignette];
-  composer.addPass(new EffectPass(camera, ...effects));
+  const mainPass = new EffectPass(camera, ...effects);
+  composer.addPass(mainPass);
   const finishPass = new EffectPass(camera, sharpen, grain);
   finishPass.dithering = true;
   composer.addPass(finishPass);
@@ -245,6 +246,8 @@ async function boot() {
   let lastW = 0;
   let lastH = 0;
   const gov = new Governor(() => resize(true));
+  // Feature switches (used by the weak-GPU profile and the #bench run).
+  const features = { dpr: null, reflection: true };
   function resize(force = false) {
     unit = probe.offsetHeight || innerHeight;
     const w = canvas.clientWidth || innerWidth;
@@ -252,7 +255,7 @@ async function boot() {
     if (!force && w === lastW && Math.abs(h - lastH) < 2) return;
     lastW = w;
     lastH = h;
-    const dpr = q.dpr * gov.current.res;
+    const dpr = features.dpr ?? q.dpr * gov.current.res;
     renderer.setPixelRatio(dpr);
     composer.setSize(w, h, false);
     camera.aspect = w / h;
@@ -295,7 +298,7 @@ async function boot() {
     arena.anim.dust.material.uniforms.uFocus.value = focusDist;
     arena.anim.dust.material.uniforms.uAperture.value = (mobile ? 26 : 38) * (viewH / 1000);
     scene.updateMatrixWorld();
-    reflection.update(scene, camera, arena.floor);
+    if (features.reflection) reflection.update(scene, camera, arena.floor);
     composer.render(dt);
   }
 
@@ -371,7 +374,69 @@ async function boot() {
     return;
   }
   html.classList.add('gl-ready');
+  if (location.hash === '#bench') { runBench(); return; }
   raf = requestAnimationFrame(loop);
+
+  // #bench: time each costly feature on this device and print a table on screen.
+  function runBench() {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font:500 13px/1.45 ui-monospace,monospace;color:#e6f0ff;background:rgba(0,0,0,.82);padding:10px 12px;border-radius:8px;white-space:pre;pointer-events:none';
+    document.body.appendChild(box);
+    const beamsOf = (kind) => arena.anim.beams.filter((b) => b.kind === kind);
+    const setBeams = (kind, on) => beamsOf(kind).forEach((b) => { b.beam.visible = on; });
+    const setCheap = (on) => arena.anim.beams.forEach((b) => { b.beam.material.uniforms.uCheap.value = on ? 1 : 0; });
+    const setBloom = (on) => bloom.blendMode.setBlendFunction(on ? BlendFunction.ADD : BlendFunction.SKIP);
+    const reset = () => {
+      features.dpr = null; features.reflection = true; floorU.uReflPower.value = 1;
+      setBeams('spot', true); setBeams('wash', true); setCheap(false); setBloom(true);
+      composer.multisampling = q.msaa; arena.anim.crowd.visible = true; arena.anim.flares.visible = true;
+    };
+    const dpr1 = Math.min(1, q.dpr);
+    const configs = [
+      ['full (as shipped)', () => {}],
+      ['render 1.0x', () => { features.dpr = dpr1; }],
+      ['1.0x, no reflection', () => { features.dpr = dpr1; features.reflection = false; floorU.uReflPower.value = 0; }],
+      ['1.0x, no wash beams', () => { features.dpr = dpr1; setBeams('wash', false); }],
+      ['1.0x, cheap beams', () => { features.dpr = dpr1; setCheap(true); }],
+      ['1.0x, no beams', () => { features.dpr = dpr1; setBeams('spot', false); setBeams('wash', false); }],
+      ['1.0x, no bloom', () => { features.dpr = dpr1; setBloom(false); }],
+      ['1.0x, MSAA off', () => { features.dpr = dpr1; composer.multisampling = 0; }],
+      ['1.0x, no crowd', () => { features.dpr = dpr1; arena.anim.crowd.visible = false; }],
+      ['1.0x, all light', () => { features.dpr = dpr1; features.reflection = false; floorU.uReflPower.value = 0; setBeams('wash', false); setCheap(true); composer.multisampling = 0; }],
+    ];
+    const results = [];
+    let ci = 0;
+    let phase = 'warm';
+    let count = 0;
+    let acc = 0;
+    let lastT = performance.now();
+    let t0 = performance.now();
+    const start = (i) => { reset(); configs[i][1](); resize(true); phase = 'warm'; count = 0; acc = 0; t0 = performance.now(); };
+    const show = (extra = '') => {
+      box.textContent = `bench · ${q.gpu.slice(0, 52)}\nviewport ${innerWidth}x${innerHeight}\n` +
+        results.map((r) => `${r.ms.toFixed(1).padStart(6)} ms ${(1000 / r.ms).toFixed(0).padStart(4)} fps  ${r.name}`).join('\n') + extra;
+    };
+    start(0);
+    const tick = (now) => {
+      const dt = now - lastT;
+      lastT = now;
+      renderFrame({ T: 0, time: now / 1000, elapsed: 30, dt: Math.min(0.1, dt / 1000) });
+      if (phase === 'warm') {
+        if (now - t0 > 1200) { phase = 'measure'; t0 = now; count = 0; acc = 0; }
+      } else {
+        acc += dt; count++;
+        if (now - t0 > 2500 && count >= 8) {
+          results.push({ name: configs[ci][0], ms: acc / count });
+          ci++;
+          if (ci >= configs.length) { reset(); resize(true); show('\ndone'); return; }
+          start(ci);
+        }
+      }
+      show(`\n… ${configs[ci] ? configs[ci][0] : ''}`);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
 }
 
 boot().catch((e) => {

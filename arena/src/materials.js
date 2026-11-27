@@ -131,6 +131,7 @@ export function beamMaterial(color) {
       uColor: { value: new THREE.Color(color) },
       uIntensity: { value: 0 },
       uTime: { value: 0 },
+      uCheap: { value: 0 },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
@@ -152,7 +153,7 @@ export function beamMaterial(color) {
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
-      uniform float uIntensity, uTime;
+      uniform float uIntensity, uTime, uCheap;
       varying float vAlong;
       varying vec3 vN;
       varying vec3 vV;
@@ -166,8 +167,11 @@ export function beamMaterial(color) {
         float a = clamp(vAlong, 0.0, 1.0);
         float fall = exp(-a * 1.6) * (0.25 + 0.75 * (1.0 - a));
         float tip = smoothstep(0.0, 0.025, a);
-        vec3 dp = vWorld * vec3(0.20, 0.32, 0.20) + vec3(0.0, -uTime * 0.10, uTime * 0.04);
-        float dust = 0.45 + 1.0 * (0.62 * vnoise3(dp) + 0.38 * vnoise3(dp * 2.3 + 4.1));
+        float dust = 0.95;
+        if (uCheap < 0.5) {
+          vec3 dp = vWorld * vec3(0.20, 0.32, 0.20) + vec3(0.0, -uTime * 0.10, uTime * 0.04);
+          dust = 0.45 + 1.0 * (0.62 * vnoise3(dp) + 0.38 * vnoise3(dp * 2.3 + 4.1));
+        }
         float floorFade = smoothstep(0.05, 1.6, vWorld.y);
         float fogK = 1.0 - fogFactor(vDist) * 0.9;
         float k = soft * fall * tip * dust * floorFade * fogK * uIntensity;
