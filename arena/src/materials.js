@@ -132,6 +132,7 @@ export function beamMaterial(color) {
       uIntensity: { value: 0 },
       uTime: { value: 0 },
       uCheap: { value: 0 },
+      uNear: { value: new THREE.Vector3(8, 12.5, 0) },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
@@ -154,6 +155,7 @@ export function beamMaterial(color) {
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
       uniform float uIntensity, uTime, uCheap;
+      uniform vec3 uNear;
       varying float vAlong;
       varying vec3 vN;
       varying vec3 vV;
@@ -174,7 +176,9 @@ export function beamMaterial(color) {
         }
         float floorFade = smoothstep(0.05, 1.6, vWorld.y);
         float fogK = 1.0 - fogFactor(vDist) * 0.9;
-        float k = soft * fall * tip * dust * floorFade * fogK * uIntensity;
+        // while a broadcast screen is in focus, beams between it and the camera step aside
+        float nearK = mix(1.0, smoothstep(uNear.x, uNear.y, vDist), uNear.z);
+        float k = soft * fall * tip * dust * floorFade * fogK * nearK * uIntensity;
         gl_FragColor = vec4(uColor * k, 1.0);
       }
     `,
@@ -602,9 +606,9 @@ export function screenMaterial(map, W, H) {
         vec3 col = content * 1.25 * scan * rev * (0.55 + 0.45 * uFocus);
         col += vec3(0.5, 0.75, 1.0) * head * 1.8;
         float sweepPos = fract(uTime * 0.06) * 2.2 - 0.6;
-        float sweep = smoothstep(0.12, 0.0, abs(inner.x + inner.y * 0.35 - sweepPos)) * 0.10;
+        float sweep = smoothstep(0.07, 0.0, abs(inner.x + inner.y * 0.35 - sweepPos)) * 0.035;
         float fres = pow(1.0 - facing, 3.0);
-        col += vec3(0.55, 0.72, 1.0) * (sweep + fres * 0.35) * inside;
+        col += vec3(0.55, 0.72, 1.0) * (sweep + fres * 0.18) * inside;
         // bezel: dark brushed frame with a thin light edge
         vec2 e = min(vUv, 1.0 - vUv) * uSize;
         float edgeLine = smoothstep(0.012, 0.0, abs(min(e.x, e.y) - 0.035));

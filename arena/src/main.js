@@ -305,6 +305,8 @@ async function boot() {
     let screenFocus = 0;
     for (let i = 0; i < 3; i++) screenFocus = Math.max(screenFocus, serviceState(i, T).focus);
     power.screenFocus = screenFocus;
+    power.nearStart = mobile ? 8.5 : 7.5;
+    power.nearEnd = mobile ? 13.5 : 12.5;
     arena.update({ time, power, motion: MOTION ? 1 : 0, camera, viewHeight: viewH, pixelRatio: renderer.getPixelRatio() });
     arena.anim.dust.material.uniforms.uFocus.value = focusDist;
     arena.anim.dust.material.uniforms.uAperture.value = (mobile ? 26 : 38) * (viewH / 1000);
@@ -330,7 +332,7 @@ async function boot() {
     if (now - statsAt < 400) return;
     statsAt = now;
     const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-    statsEl.textContent = `${fpsEma.toFixed(0)} fps\n${size.x}x${size.y} (${renderer.getPixelRatio().toFixed(2)}x)\n${q.profile} · MSAA ${q.msaa}${q.smaa ? ' · SMAA' : ''} · step ${gov.step}\n${q.gpu.slice(0, 48)}`;
+    statsEl.textContent = `${fpsEma.toFixed(0)} fps\n${size.x}x${size.y} (${renderer.getPixelRatio().toFixed(2)}x)\n${q.profile} · MSAA ${q.msaa}${q.smaa ? ' · SMAA' : ''} · step ${gov.step}\n${q.gpu.slice(0, 48)}\nbuild ${__BUILD__}`;
   }
 
   let raf = 0;

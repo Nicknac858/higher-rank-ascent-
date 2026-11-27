@@ -80,35 +80,52 @@ export class Governor {
     this.step = 0;
     this.ema = 16.7;
     this.slow = 0;
-    this.fast = 0;
+    this.fastSince = 0;
     this.last = 0;
+    this.lastUp = -1e9;
     this.frames = 0;
+    this.start = 0;
+    this.capStep = 0;
+    this.capUntil = 0;
   }
   get current() { return STEPS[this.step]; }
+  set(step, nowMs) {
+    this.step = step;
+    this.last = nowMs;
+    this.slow = 0;
+    this.fastSince = 0;
+    this.onChange(STEPS[this.step]);
+  }
   sample(dtMs, nowMs) {
-    // The loop pauses while the tab is hidden, so long frames here are real: count them.
     if (dtMs <= 0) return;
     if (!this.start) this.start = nowMs;
-    const d = Math.min(dtMs, 1500);
+    // warm-up: first frames include shader compiles and uploads, not real cost
+    if (nowMs - this.start < 2200) return;
+    // the loop pauses while the tab is hidden, so long frames here are real: count them
+    // one-off stalls (another app, a screenshot, GC) shouldn't read as a slow device
+    const d = Math.min(dtMs, this.slowMs * 3);
     this.frames++;
-    // adapt faster while the estimate is young
     const k = this.frames < 20 ? 0.25 : 0.07;
     this.ema = this.ema * (1 - k) + d * k;
-    const settled = this.frames >= 30 || (nowMs - this.start > 2500 && this.frames >= 4);
-    if (!settled) return;
-    if (this.ema > this.slowMs) { this.slow += Math.max(1, Math.round(d / 16.7)); this.fast = 0; } else if (this.ema < this.fastMs) { this.fast++; this.slow = 0; } else { this.slow = 0; this.fast = 0; }
+    if (this.frames < 6) return;
+    if (this.ema > this.slowMs) {
+      this.slow += Math.min(3, Math.max(1, Math.round(d / 16.7)));
+      this.fastSince = 0;
+    } else {
+      this.slow = 0;
+      if (this.ema < this.fastMs) { if (!this.fastSince) this.fastSince = nowMs; } else this.fastSince = 0;
+    }
     if (nowMs - this.last < 1500) return;
     if (this.slow > 45 && this.step < STEPS.length - 1) {
-      // far too slow: skip a step
-      this.step = Math.min(STEPS.length - 1, this.step + (this.ema > this.slowMs * 2.8 ? 2 : 1));
-      this.last = nowMs;
-      this.slow = 0;
-      this.onChange(STEPS[this.step]);
-    } else if (this.fast > 600 && this.step > 0) {
-      this.step--;
-      this.last = nowMs;
-      this.fast = 0;
-      this.onChange(STEPS[this.step]);
+      // stepping down soon after stepping up means that level is too heavy: hold below it
+      if (nowMs - this.lastUp < 6000) { this.capStep = this.step + 1; this.capUntil = nowMs + 30000; }
+      this.set(Math.min(STEPS.length - 1, this.step + (this.ema > this.slowMs * 2.8 ? 2 : 1)), nowMs);
+    } else if (this.fastSince && nowMs - this.fastSince > 1500 && this.step > 0) {
+      const floor = nowMs < this.capUntil ? this.capStep : 0;
+      if (this.step - 1 >= floor) {
+        this.lastUp = nowMs;
+        this.set(this.step - 1, nowMs);
+      }
     }
   }
 }
