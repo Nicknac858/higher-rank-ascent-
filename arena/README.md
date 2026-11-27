@@ -79,6 +79,17 @@ and show cabinet seams; content steps across them like a real wall. Every fixtur
 crisp lens point with a thin anamorphic streak. Add `#stats` to the link for a frame-rate
 and resolution readout.
 
+## Built-in graphics (light profile)
+
+Measured on the owner's PC (Intel HD Graphics 530, 717x867 window, `#bench`):
+as first shipped 17 fps (1.5x render scale); at 1.0x 31 fps; MSAA and the full
+reflection cost ~10 ms each, beam noise and bloom ~4 ms each, the crowd ~0.
+Integrated GPUs (Intel HD/UHD/Iris, AMD integrated, Mali, PowerVR) now get the
+light profile: native resolution, SMAA instead of MSAA, reflection at 0.3 scale
+every other frame without beams/haze/crowd, noise-free beams and haze, half-res
+bloom, no wash beams, 30 fps target. Result on the same machine: native 1.0x at
+94-151 fps. `?q=light` forces it; `#bench` re-measures on any device.
+
 ## Quality and fallbacks
 
 - Tiers: desktop high, phone (DPR capped at 1.75), low. `?q=low|mid|high` forces one.

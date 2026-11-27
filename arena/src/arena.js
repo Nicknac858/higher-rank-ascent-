@@ -740,7 +740,7 @@ export function buildArena({ quality, renderer, accent = null }) {
       const base = b.kind === 'wash' ? 0.028 : 0.36;
       b.beam.material.uniforms.uIntensity.value = base * b.gain * b.power;
       b.beam.material.uniforms.uTime.value = time;
-      b.beam.material.uniforms.uNear.value.set(P.nearStart || 8, P.nearEnd || 12.5, P.screenFocus || 0);
+      b.beam.material.uniforms.uNear.value.set(P.nearStart || 8, P.nearEnd || 12.5, P.nearMask || 0);
       if (b.lensMat) b.lensMat.color.copy(b.color).multiplyScalar(6.0 * b.power);
     });
     for (const s of anim.spots) {
