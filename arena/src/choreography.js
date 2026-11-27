@@ -170,8 +170,8 @@ export function placeScreen(screen, i, T, camera, { mobile, velocity, motion, dt
   const path = mobile ? PATHS.mobile : PATHS.desktop;
   const s = serviceState(i, T);
   const { u } = s;
-  // reduced motion: panes stay put and crossfade halfway between sections
-  const still = 1 - smooth(0.4, 0.6, Math.abs(u));
+  // reduced motion: panes stay put; one fades out before the next fades in (never overlapping)
+  const still = 1 - smooth(0.3, 0.46, Math.abs(u));
   const vis = motion ? Math.abs(u) < 0.95 : still > 0.001;
   screen.mesh.visible = vis;
   if (!vis) {
