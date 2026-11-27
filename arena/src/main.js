@@ -36,9 +36,19 @@ const accentKey = [params.get('accent'), location.hash.slice(1)].find((k) => k &
 const ACCENT = ACCENTS[accentKey];
 if (ACCENT) document.documentElement.style.setProperty('--accent', ACCENT.css);
 const html = document.documentElement;
+// page-level diagnostics (see the canvas ones in boot): #noblur drops the frosted blur behind glass UI,
+// #flat drops the title's depth shadows
+const PAGE_DIAG = new Set(location.hash.slice(1).split(/[-+_,]/));
+if (PAGE_DIAG.has('noblur')) html.classList.add('diag-noblur');
+if (PAGE_DIAG.has('flat')) html.classList.add('diag-flat');
 const probe = document.querySelector('.probe');
 const svcEls = [...document.querySelectorAll('.svc')];
 const heroEl = document.querySelector('.hero');
+const giantEl = document.querySelector('.giant');
+const faceEls = [...document.querySelectorAll('.giant .face')];
+const pillEl = document.querySelector('.menu-pill');
+const progEl = document.querySelector('.menu-progress');
+const navLinks = [...document.querySelectorAll('.menu a[data-section]')];
 const mobileMQ = matchMedia('(max-width: 760px)');
 
 // ---------- type fitting ----------
@@ -82,10 +92,71 @@ document.addEventListener('click', (e) => {
   try { history.replaceState(null, '', id); } catch (err) { /* sandboxed frame */ }
 });
 
+// ---------- glass glint: the highlight on glass and gloss follows the pointer ----------
+if (matchMedia('(pointer: fine)').matches) {
+  document.querySelectorAll('.menu, .menu a.cta, .btn').forEach((el) => {
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--gx', `${(e.clientX - r.left).toFixed(0)}px`);
+      el.style.setProperty('--gy', `${(e.clientY - r.top).toFixed(0)}px`);
+    });
+    el.addEventListener('pointerleave', () => {
+      el.style.removeProperty('--gx');
+      el.style.removeProperty('--gy');
+    });
+  });
+}
+
 // ---------- DOM choreography (runs with or without WebGL) ----------
 let lastDom = '';
-function updateDOM(T) {
+let lastTilt = -1;
+let lastSweep = -999;
+let lastActive;
+let lastProg = -1;
+
+// Band of light across the title: once when the arena powers on, then tied to the scroll as the hero leaves.
+function heroSweep(T, elapsed) {
+  if (!MOTION) return -30;
+  if (T > 0.015) return -25 + 150 * Math.min(1, (T - 0.015) / 0.42);
+  const k = Math.min(1, Math.max(0, (elapsed - 2.6) / 1.3));
+  return -25 + 150 * k * k * (3 - 2 * k);
+}
+
+// Glass pill under the nav link for the section in view.
+function placePill(active) {
+  navLinks.forEach((a) => {
+    if (a.dataset.section === active) a.setAttribute('aria-current', 'location');
+    else a.removeAttribute('aria-current');
+  });
+  const a = navLinks.find((l) => l.dataset.section === active);
+  if (!a || !a.offsetParent) { pillEl.style.opacity = '0'; return; }
+  pillEl.style.width = `${a.offsetWidth}px`;
+  pillEl.style.transform = `translateX(${a.offsetLeft}px)`;
+  pillEl.style.opacity = '1';
+}
+addEventListener('resize', () => placePill(lastActive));
+function updateDOM(T, elapsed = 99) {
   const mobile = mobileMQ.matches;
+  // title: tilts back into the arena as the hero scrolls away, light sweeps across the face
+  const hp = Math.min(1, Math.max(0, T / 0.62));
+  const tilt = MOTION ? 34 * Math.pow(hp, 1.3) : 0;
+  if (Math.abs(tilt - lastTilt) > 0.01) {
+    giantEl.style.transform = tilt > 0.01 ? `perspective(1100px) rotateX(${tilt.toFixed(2)}deg)` : '';
+    lastTilt = tilt;
+  }
+  const sweep = heroSweep(T, elapsed);
+  if (Math.abs(sweep - lastSweep) > 0.15) {
+    faceEls.forEach((f) => f.style.setProperty('--sweep', `${sweep.toFixed(1)}%`));
+    lastSweep = sweep;
+  }
+  // nav: which section you're in, and how far through the story
+  const active = T >= 0.55 && T < 2.5 ? 'services' : T >= 2.5 && T < 3.55 ? 'events' : null;
+  if (active !== lastActive) { placePill(active); lastActive = active; }
+  const prog = Math.min(1, Math.max(0, T / 4));
+  if (Math.abs(prog - lastProg) > 0.002) {
+    progEl.style.transform = `scaleX(${prog.toFixed(3)})`;
+    lastProg = prog;
+  }
   let side = 0;
   svcEls.forEach((el, i) => {
     const s = serviceState(i, T);
@@ -168,6 +239,7 @@ const damp = (a, b, lambda, dt) => a + (b - a) * (1 - Math.exp(-lambda * dt));
 
 async function boot() {
   const q = detectQuality(params);
+  if (q.profile === 'light') html.classList.add('lite');
   if (params.has('nogl')) return fallback('forced');
   if (!q.ok) return fallback(q.reason);
   if (q.software && !TEST && !params.has('force')) return fallback('software-renderer');
@@ -335,7 +407,7 @@ async function boot() {
 
   // #stats on the link (or ?stats) shows frame rate and render resolution for tuning.
   let statsEl = null;
-  if (location.hash === '#stats' || DIAG.size > 1 || ['crack', 'nosmaa', 'nosharp', 'noenv', 'nosheen', 'noedge', 'noback'].some((k) => DIAG.has(k)) || params.has('stats')) {
+  if (location.hash === '#stats' || DIAG.size > 1 || ['crack', 'nosmaa', 'nosharp', 'noenv', 'nosheen', 'noedge', 'noback', 'noblur', 'flat'].some((k) => DIAG.has(k)) || params.has('stats')) {
     statsEl = document.createElement('div');
     statsEl.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font:500 12px/1.4 ui-monospace,monospace;color:#cfe2ff;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre';
     document.body.appendChild(statsEl);
@@ -367,7 +439,7 @@ async function boot() {
     velocity = damp(velocity, (camT - prevT) / dt, 8, dt);
     prevT = camT;
     renderFrame({ T: camT, time: now / 1000, elapsed: (now - startTime) / 1000, dt });
-    updateDOM(camT);
+    updateDOM(camT, (now - startTime) / 1000);
     gov.sample(dtMs, now);
     updateStats(dtMs, now);
   }
@@ -401,7 +473,7 @@ async function boot() {
       renderAt({ T = 0, time = 12, elapsed = 12, frames = 2, vel = 0 } = {}) {
         velocity = vel;
         for (let i = 0; i < frames; i++) renderFrame({ T, time: time + i / 60, elapsed: elapsed + i / 60, dt: 1 / 60 });
-        updateDOM(T);
+        updateDOM(T, elapsed);
         return true;
       },
     };

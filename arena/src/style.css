@@ -93,20 +93,94 @@ html.no-gl .poster { display: block; }
   text-decoration: none; color: var(--ink);
   font-weight: 800; font-stretch: 125%; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase;
 }
-.brand .mark { width: 20px; height: 20px; fill: var(--accent, var(--blue)); }
+.brand .mark { width: 20px; height: 20px; fill: var(--accent, var(--blue)); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent, var(--blue)) 60%, transparent)); }
+
+/* Glass: the same material as the broadcast windows in the arena. Frosted, lit along the top edge,
+   picking up the accent underneath, with a glint that follows the pointer (--gx / --gy from script). */
+.menu, .btn.ghost {
+  --gx: 50%; --gy: -40%; --glass: 0.12;
+  background:
+    radial-gradient(140px 70px at var(--gx) var(--gy), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, var(--glass)) 0%, rgba(255, 255, 255, 0.03) 52%, rgba(255, 255, 255, 0.05) 100%),
+    rgba(8, 12, 24, 0.46);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 color-mix(in srgb, var(--accent, var(--blue)) 55%, transparent),
+    0 12px 32px -12px rgba(0, 0, 0, 0.7);
+}
+/* On built-in graphics (light profile) the live blur behind glass costs more than the whole 3D scene
+   saves, so the glass keeps its light and edges over a slightly deeper tint instead. */
+html.lite .menu, html.lite .btn.ghost { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(8, 12, 24, 0.66); }
+/* Gloss: the primary action, lit blue glass with a sheen that crosses it on hover */
+.menu a.cta, .btn.primary {
+  --gx: 50%; --gy: -40%;
+  position: relative; overflow: hidden; isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(120px 60px at var(--gx) var(--gy), rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #4a8bff 0%, #2c6df5 48%, #1f5fe8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(10, 30, 110, 0.6),
+    0 10px 26px -10px rgba(47, 109, 255, 0.85);
+  transition: box-shadow 0.25s, transform 0.2s;
+}
+.menu a.cta::after, .btn.primary::after {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 45%; z-index: -1;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.42) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: skewX(-18deg); opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.menu a.cta:hover::after, .btn.primary:hover::after {
+  opacity: 1; transform: translateX(400%) skewX(-18deg);
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.15s;
+}
+.menu a.cta:hover, .btn.primary:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(10, 30, 110, 0.6),
+    0 12px 32px -8px rgba(47, 109, 255, 0.95);
+}
+.menu a.cta:active, .btn.primary:active, .btn.ghost:active { transform: translateY(1px); }
+
+/* nav */
 .menu {
+  position: relative;
   display: flex; align-items: center; gap: 2px; padding: 5px;
-  border-radius: 999px; background: rgba(5, 8, 15, 0.72);
+  border-radius: 999px;
 }
 .menu a {
+  position: relative; z-index: 1;
   white-space: nowrap;
-  font: 500 11.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--body); text-decoration: none; padding: 12px 15px; border-radius: 999px;
+  font: 600 14px/1 var(--sans); letter-spacing: 0.005em;
+  color: var(--body); text-decoration: none; padding: 12px 16px; border-radius: 999px;
   transition: color 0.2s, background-color 0.2s;
 }
-.menu a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.07); }
-.menu a.cta { color: #fff; background: var(--btn); }
-.menu a.cta:hover { background: var(--btn-hover); }
+.menu a:not(.cta):hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.menu a[aria-current] { color: var(--ink); }
+/* a glass pill that slides under the section you're in */
+.menu-pill {
+  position: absolute; left: 0; top: 5px; bottom: 5px; width: 0; z-index: 0;
+  border-radius: 999px; opacity: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 color-mix(in srgb, var(--accent, var(--blue)) 75%, transparent);
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+}
+/* how far through the story you are, along the bottom edge of the bar */
+.menu-progress {
+  position: absolute; left: 20px; right: 20px; bottom: 0; height: 1px; pointer-events: none;
+  background: var(--accent, var(--blue));
+  box-shadow: 0 0 6px var(--accent, var(--blue));
+  transform-origin: 0 50%; transform: scaleX(0);
+}
 
 /* buttons */
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
@@ -114,12 +188,9 @@ html.no-gl .poster { display: block; }
   display: inline-flex; align-items: center; justify-content: center;
   min-height: 50px; padding: 0 24px; border-radius: 999px;
   font-weight: 650; font-size: 15px; letter-spacing: 0.01em; text-decoration: none;
-  transition: background-color 0.2s, color 0.2s;
 }
-.btn.primary { background: var(--btn); color: #fff; }
-.btn.primary:hover { background: var(--btn-hover); }
-.btn.ghost { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
-.btn.ghost:hover { background: rgba(255, 255, 255, 0.14); }
+.btn.ghost { color: var(--ink); transition: transform 0.2s; }
+.btn.ghost:hover { --glass: 0.2; }
 
 /* hero */
 main { position: relative; z-index: 2; }
@@ -137,9 +208,39 @@ main { position: relative; z-index: 2; }
 .giant {
   margin: 0; font-weight: 800; font-stretch: 125%; text-transform: uppercase;
   line-height: 0.8; letter-spacing: -0.012em; color: var(--ink);
+  transform-origin: 50% 100%; will-change: transform;
 }
-.giant .fit { display: block; white-space: nowrap; font-size: 15vw; }
+.giant .fit { position: relative; display: block; white-space: nowrap; font-size: 15vw; }
 .giant .fit-two { display: none; }
+/* The title as a solid object: a thin edge under the face, rim-lit in the accent from the stage below,
+   with a soft drop shadow. This layer never repaints. */
+.giant .depth {
+  color: #273050;
+  text-shadow:
+    0 0.012em 0 #222a47, 0 0.024em 0 #1d2440, 0 0.036em 0 #181e38, 0 0.048em 0 #141930,
+    0 0.058em 0 color-mix(in srgb, var(--accent, var(--blue)) 75%, #10142a),
+    0 0.066em 0.03em color-mix(in srgb, var(--accent, var(--blue)) 50%, transparent),
+    0 0.16em 0.22em rgba(0, 0, 0, 0.55);
+}
+/* The face: cool metallic gradient and a band of light that sweeps across it (on power-up and as you
+   scroll); only this thin layer repaints when the light moves. */
+.giant .face {
+  --sweep: -30%;
+  position: absolute; left: 0; top: -0.1em; padding: 0.1em 0;
+  white-space: nowrap; color: transparent;
+  background:
+    linear-gradient(104deg,
+      rgba(255, 255, 255, 0) calc(var(--sweep) - 20%),
+      color-mix(in srgb, var(--accent, var(--blue)) 55%, rgba(255, 255, 255, 0)) calc(var(--sweep) - 7%),
+      rgba(255, 255, 255, 0.95) var(--sweep),
+      rgba(255, 255, 255, 0) calc(var(--sweep) + 9%)),
+    linear-gradient(180deg, #ffffff 0%, #e6ecfa 38%, #a9b6d8 57%, #d7dff4 66%, #f2f5ff 100%);
+  -webkit-background-clip: text; background-clip: text;
+  will-change: transform;
+}
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .giant .face { color: var(--ink); background: none; }
+}
 
 /* services */
 .services { position: relative; height: 300vh; height: 300svh; }
@@ -179,8 +280,8 @@ main { position: relative; z-index: 2; }
 }
 
 @media (max-width: 760px) {
-  .menu a:not(.cta) { display: none; }
-  .menu a.cta { padding: 12px 14px; letter-spacing: 0.08em; font-size: 11px; }
+  .menu a:not(.cta), .menu-pill { display: none; }
+  .menu a.cta { padding: 12px 15px; font-size: 13px; }
   .brand span { font-size: 13px; }
   .hero-row { display: block; margin-bottom: 18px; }
   .scroll { display: none; }
@@ -198,6 +299,12 @@ main { position: relative; z-index: 2; }
 
 @media (prefers-reduced-motion: reduce) {
   #gl { transition: none; }
+  .menu-pill { transition: none; }
+  .menu a.cta::after, .btn.primary::after { display: none; }
 }
 
 html.posterize main, html.posterize .nav, html.posterize .veil { display: none !important; }
+
+/* diagnostics */
+html.diag-noblur .menu, html.diag-noblur .btn.ghost { -webkit-backdrop-filter: none; backdrop-filter: none; background-color: rgba(8, 12, 24, 0.8); }
+html.diag-flat .giant .depth { text-shadow: none; }

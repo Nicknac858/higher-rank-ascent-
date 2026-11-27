@@ -24,7 +24,8 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
-- `v16-arena-glass-chairs.html` — The Arena: glass windows fixed for Intel GPUs, esports chairs, monitors and keyboards (current)
+- `v17-arena-glass-ui-3d-title.html` — The Arena: glass nav and buttons, 3D title with light sweep and tilt, nav section pill and progress line (current)
+- `v16-arena-glass-chairs.html` — The Arena: glass windows fixed for Intel GPUs, esports chairs, monitors and keyboards
 - `v15-arena-glass-windows.html` — The Arena: glass windows that turn through the frame, sharp stage ticker (black flicker on Intel GPUs)
 - `v14-arena-reveal-hairline.html` — The Arena: screen reveal edge is a crisp hairline instead of a glare band
 - `v13-arena-light-profile.html` — The Arena: light profile for built-in GPUs, verified at native resolution on an Intel HD 530

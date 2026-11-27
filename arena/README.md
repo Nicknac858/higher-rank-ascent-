@@ -121,6 +121,7 @@ e.g. `#crack-nosmaa`. Any of them also turns on the `#stats` readout.
 - `#crack`: paints the frame behind the glass magenta, so any gap in the panes shows up.
 - `#nosmaa`, `#nosharp`: drop the SMAA or sharpening pass.
 - `#noenv`, `#nosheen`, `#noedge`, `#noback`: skip one glass term (reflection, sheen, edge + lip, frosted backdrop).
+- `#noblur`: drop the frosted blur behind the glass nav and buttons; `#flat`: drop the title's depth shadows.
   These skip the computation rather than multiplying it by zero, because NaN times zero is still NaN.
 
 Lessons from the owner's Intel HD 530 (ANGLE on D3D): a negative base raised to a power is NaN, the arc
@@ -128,3 +129,17 @@ tangent's branch cut produced NaN along a line across a flat glass pane, and mip
 pixel over the whole frame (that was the "black flicker"). The glass shader uses neither; its output also
 passes through `max(., 0)`, which returns the non-NaN operand on D3D. SwiftShader in local tests computes
 these "correctly", so check new shaders on the real device.
+
+## Glass UI and title
+
+The nav bar and buttons use the same glass as the broadcast windows: frosted, lit along the top edge,
+the accent along the underside, and a glint that follows the pointer (`--gx` / `--gy`). Primary actions
+are glossy blue with a sheen on hover. On the light profile (built-in GPUs) the live backdrop blur is
+skipped (`html.lite`): measured on the owner's Intel HD 530 it cost more than the whole 3D scene saves
+(67-78 fps at 0.86x with it, 89-99 fps at 1.0x without).
+
+The title is two layers: `.depth` (a thin solid edge with an accent rim and a soft shadow, never
+repainted) and `.face` (metallic gradient plus a band of light at `--sweep`). The light sweeps once when
+the arena powers on and again as the hero scrolls away, while the title tilts back into the arena
+(`updateDOM`). The nav pill slides to the section in view and a progress line runs along the bar.
+Reduced motion: no tilt, sweep, sheen or pill animation.
