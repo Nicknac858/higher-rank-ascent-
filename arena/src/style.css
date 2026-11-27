@@ -93,7 +93,7 @@ html.no-gl .poster { display: block; }
   text-decoration: none; color: var(--ink);
   font-weight: 800; font-stretch: 125%; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase;
 }
-.brand .mark { width: 20px; height: 20px; fill: var(--blue); }
+.brand .mark { width: 20px; height: 20px; fill: var(--accent, var(--blue)); }
 .menu {
   display: flex; align-items: center; gap: 2px; padding: 5px;
   border-radius: 999px; background: rgba(5, 8, 15, 0.72);

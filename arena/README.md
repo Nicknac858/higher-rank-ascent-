@@ -55,6 +55,14 @@ Screen content is placeholder art labelled "PLACEHOLDER — PROJECT FOOTAGE GOES
 To use real footage, swap `makeScreenTexture(k)` for a `THREE.VideoTexture` of a muted,
 looping, inline video; the screen shader takes any texture.
 
+## Colour
+
+Black, electric blue for the brand and structure, and one second colour (magenta, `#ff3d9a`)
+kept to highlight moments: the rank chevrons, the centre of the stage, one beam in four, the
+dashed floor ring, the crowd wave and the screens' broadcast bars. Buttons stay blue.
+Compare other options with `?accent=purple|violet|gold|aqua|blue`, or `#purple` etc. on the
+artifact link. The default lives in `src/main.js` (`ACCENTS`).
+
 ## Quality and fallbacks
 
 - Tiers: desktop high, phone (DPR capped at 1.75), low. `?q=low|mid|high` forces one.

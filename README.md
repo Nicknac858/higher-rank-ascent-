@@ -24,7 +24,8 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
-- `v8-arena-stage-one.html` — The Arena, stage one (hero, services, close)
+- `v9-arena-magenta.html` — The Arena with magenta as the second colour (current)
+- `v8-arena-stage-one.html` — The Arena, stage one, blue only
 - `v1-rank-order.html` — typographic ranked-list concept (not approved)
 - `v2-ascent-terraces-vermilion.html` — first WebGL world
 - `v3-ascent-terraces-aurora.html` — new palette and richer sky

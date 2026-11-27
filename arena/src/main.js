@@ -7,7 +7,7 @@ import {
 } from 'postprocessing';
 import { buildArena, buildEnvironment } from './arena.js';
 import { fogUniforms, screenMaterial } from './materials.js';
-import { makeScreenTexture } from './textures.js';
+import { makeScreenTexture, setAccent } from './textures.js';
 import { placeCamera, powerAt, placeScreen, serviceState } from './choreography.js';
 import { detectQuality, Governor } from './quality.js';
 import { createReflection } from './reflection.js';
@@ -17,6 +17,19 @@ const TEST = params.has('test');
 if (params.has('poster')) document.documentElement.classList.add('posterize');
 const REDUCED = params.has('reduced') || (matchMedia('(prefers-reduced-motion: reduce)').matches && !params.has('motion'));
 const MOTION = !REDUCED;
+// Second colour: magenta by default (owner's pick, 2026-11-27). Compare others with
+// ?accent=name or, inside the artifact viewer, #name (e.g. #purple). #blue = blue only.
+const ACCENTS = {
+  magenta: { hex: 0xff3d9a, css: '#ff3d9a' },
+  purple: { hex: 0xc04bff, css: '#c04bff' },
+  violet: { hex: 0x8f5bff, css: '#8f5bff' },
+  gold: { hex: 0xffb547, css: '#ffb547' },
+  aqua: { hex: 0x2ff3d2, css: '#2ff3d2' },
+  blue: null,
+};
+const accentKey = [params.get('accent'), location.hash.slice(1)].find((k) => k && k in ACCENTS) || 'magenta';
+const ACCENT = ACCENTS[accentKey];
+if (ACCENT) document.documentElement.style.setProperty('--accent', ACCENT.css);
 const html = document.documentElement;
 const probe = document.querySelector('.probe');
 const svcEls = [...document.querySelectorAll('.svc')];
@@ -163,7 +176,8 @@ async function boot() {
     new Promise((r) => setTimeout(r, 2500)),
   ]).catch(() => {});
 
-  const arena = buildArena({ quality: q, renderer });
+  setAccent(ACCENT ? ACCENT.css : null);
+  const arena = buildArena({ quality: q, renderer, accent: ACCENT });
   scene.add(arena.root);
 
   const SW = 4.8;

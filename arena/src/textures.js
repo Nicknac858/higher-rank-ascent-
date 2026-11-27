@@ -9,6 +9,13 @@ const WHITE = '#eef4ff';
 const BLUE = '#2f7dff';
 const BLUE_HI = '#8cc6ff';
 const DEEP = '#0a2a80';
+let ACCENT = BLUE;
+let ACCENT_HI = BLUE_HI;
+// Second colour for rank insignia and highlight moments (null = blue only).
+export function setAccent(css) {
+  ACCENT = css || BLUE;
+  ACCENT_HI = css || BLUE_HI;
+}
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas');
@@ -81,7 +88,7 @@ export function makeHaloTexture() {
   const page = W / 4;
 
   const wordmark = (x0) => {
-    drawChevrons(g, x0 + 54, 62, 120, 170, 3, BLUE, 0.3);
+    drawChevrons(g, x0 + 54, 62, 120, 170, 3, ACCENT, 0.3);
     g.fillStyle = WHITE;
     g.textBaseline = 'middle';
     fitText(g, 'HIGHER RANK', page - 290, 800, 150, DISPLAY, 'expanded');
@@ -116,7 +123,7 @@ export function makeHaloTexture() {
   bigWord(page, 'LIVE EVENTS', 'PRODUCE  /  PROMOTE  /  PARTNER');
   for (let i = 0; i < 18; i++) {
     const bh = 30 + Math.abs(Math.sin(i * 0.7) * 120) + (i % 3) * 14;
-    g.fillStyle = i % 4 === 0 ? BLUE_HI : BLUE;
+    g.fillStyle = i % 4 === 0 ? ACCENT_HI : BLUE;
     g.fillRect(page * 2 - 230 + i * 11, H - 40 - bh, 6, bh);
   }
 
@@ -143,14 +150,15 @@ export function makeHaloTexture() {
   g.moveTo(bx + 110, 130);
   g.lineTo(bx + 190, 130);
   g.stroke();
-  g.fillStyle = BLUE_HI;
+  g.fillStyle = ACCENT_HI;
   g.fillRect(bx + 186, 118, 24, 24);
 
   return finish(c, { wrap: true });
 }
 
 // Seamless scrolling ticker band.
-export function makeTickerTexture({ items, height = 96, fg = BLUE_HI, accent = BLUE, bg = '#000', band = null, width = 4096 }) {
+export function makeTickerTexture({ items, height = 96, fg = BLUE_HI, accent = null, bg = '#000', band = null, width = 4096 }) {
+  accent = accent || ACCENT;
   const c = makeCanvas(width, height);
   const g = c.getContext('2d');
   g.fillStyle = bg;
@@ -203,6 +211,7 @@ export function makeUndersideTexture() {
   g.fillRect(0, 0, S, S);
   g.strokeStyle = BLUE;
   for (const [r, w] of [[470, 10], [405, 3], [300, 6], [190, 3]]) {
+    g.strokeStyle = r === 470 ? ACCENT : BLUE;
     g.lineWidth = w;
     g.beginPath();
     g.arc(cx, cy, r, 0, Math.PI * 2);
@@ -389,7 +398,7 @@ export function makeScreenTexture(kind) {
   const title = ['WEB DESIGN', 'MARKETING', 'LIVE EVENTS & ESPORTS'][kind];
   g.fillStyle = 'rgba(0,4,14,0.75)';
   g.fillRect(0, H - 150, W, 150);
-  g.fillStyle = BLUE;
+  g.fillStyle = ACCENT;
   g.fillRect(74, H - 112, 10, 74);
   g.fillStyle = WHITE;
   g.textBaseline = 'middle';

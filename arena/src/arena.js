@@ -124,7 +124,8 @@ function buildTruss(R, Y, segs, w, t, material, lacing = true) {
   return group;
 }
 
-export function buildArena({ quality, renderer }) {
+export function buildArena({ quality, renderer, accent = null }) {
+  const ACC = accent ? accent.hex : null;
   const root = new THREE.Group();
   const anim = {
     leds: [], strips: [], beams: [], spots: [], monitors: null, chairPiping: null,
@@ -146,6 +147,7 @@ export function buildArena({ quality, renderer }) {
 
   // ---------- floor ----------
   const floorMat = floorMaterial();
+  if (ACC) floorMat.uniforms.uAccentColor.value.setHex(ACC);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(DIM.floorR, 180), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.updateMatrixWorld();
@@ -179,7 +181,7 @@ export function buildArena({ quality, renderer }) {
   const stageEdge = new THREE.Mesh(flatTorus(DIM.stageR - 0.18, 0.025, DIM.stageH + 0.005, 6, 320), stripMaterial({ color: 0x5a9bff, intensity: 3.2 }));
   stage.add(stageEdge);
   anim.strips.push({ mat: stageEdge.material, group: 'stage' });
-  const innerEdge = new THREE.Mesh(flatTorus(2.2, 0.02, DIM.stageH + 0.005, 6, 160), stripMaterial({ color: 0x2f7dff, intensity: 2.6 }));
+  const innerEdge = new THREE.Mesh(flatTorus(2.2, 0.02, DIM.stageH + 0.005, 6, 160), stripMaterial({ color: ACC ?? 0x2f7dff, intensity: 2.6 }));
   stage.add(innerEdge);
   anim.strips.push({ mat: innerEdge.material, group: 'stage' });
 
@@ -187,7 +189,7 @@ export function buildArena({ quality, renderer }) {
   const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.32, 96), M.metal);
   ped.position.y = DIM.stageH + 0.16;
   stage.add(ped);
-  const pedRing = new THREE.Mesh(flatTorus(1.05, 0.03, DIM.stageH + 0.33, 6, 128), stripMaterial({ color: 0x9ccaff, intensity: 4 }));
+  const pedRing = new THREE.Mesh(flatTorus(1.05, 0.03, DIM.stageH + 0.33, 6, 128), stripMaterial({ color: ACC ?? 0x9ccaff, intensity: 4 }));
   stage.add(pedRing);
   anim.strips.push({ mat: pedRing.material, group: 'stage' });
 
@@ -359,7 +361,7 @@ export function buildArena({ quality, renderer }) {
     new THREE.BoxGeometry(0.05, 0.42, 0.14).translate(-0.24, 0.1, 0),
     new THREE.BoxGeometry(0.05, 0.42, 0.14).translate(0.24, 0.1, 0),
   ]);
-  const palette = [0xdde9ff, 0x2f6dff, 0xdde9ff, 0x4f8dff];
+  const palette = [0xdde9ff, 0x2f6dff, ACC ?? 0xdde9ff, 0x4f8dff];
   const nSpots = quality.spots;
   for (let i = 0; i < nSpots; i++) {
     const t = ((i + 0.5) / nSpots) * TAU;
@@ -383,7 +385,7 @@ export function buildArena({ quality, renderer }) {
     anim.beams.push({
       kind: 'spot', i, t, pos: beam.position.clone(), head, lensMat, beam, color: new THREE.Color(color),
       half: THREE.MathUtils.degToRad(5.2), toCrowd, seed: rand() * 10, target: new THREE.Vector3(), dir: new THREE.Vector3(0, -1, 0), len: 15,
-      gain: color === 0x2f6dff ? 1.5 : 1.0,
+      gain: color === 0x2f6dff ? 1.5 : (ACC && color === ACC ? 1.35 : 1.0),
     });
   }
   const nWash = quality.washes;
@@ -406,7 +408,7 @@ export function buildArena({ quality, renderer }) {
   // light column from the pedestal up into the halo
   const colGeo = new THREE.CylinderGeometry(0.004, Math.tan(THREE.MathUtils.degToRad(9)), 1, 36, 1, true);
   colGeo.translate(0, -0.5, 0);
-  const column = new THREE.Mesh(colGeo, beamMaterial(0x6aa8ff));
+  const column = new THREE.Mesh(colGeo, beamMaterial(ACC ?? 0x6aa8ff));
   column.frustumCulled = false;
   column.position.set(0, DIM.stageH + 0.35, 0);
   column.rotation.x = Math.PI;
@@ -534,6 +536,7 @@ export function buildArena({ quality, renderer }) {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aData', new THREE.BufferAttribute(data, 4));
     const crowd = new THREE.Points(g, crowdMaterial());
+    if (ACC) crowd.material.uniforms.uWaveColor.value.setHex(ACC);
     crowd.frustumCulled = false;
     root.add(crowd);
     anim.crowd = crowd;

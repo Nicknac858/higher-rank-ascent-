@@ -187,6 +187,7 @@ export function floorMaterial() {
       uTime: { value: 0 },
       uRings: { value: 0 },
       uRingColor: { value: new THREE.Color(0x2f7dff) },
+      uAccentColor: { value: new THREE.Color(0x2f7dff) },
       uReflPower: { value: 1 },
       uPools: { value: pools },
       uPoolCols: { value: poolCols },
@@ -212,6 +213,7 @@ export function floorMaterial() {
       uniform vec3 uCamPos;
       uniform float uTime, uRings, uReflPower;
       uniform vec3 uRingColor;
+      uniform vec3 uAccentColor;
       uniform vec4 uPools[${MAX_POOLS}];
       uniform vec3 uPoolCols[${MAX_POOLS}];
       varying vec4 vRefl;
@@ -250,7 +252,7 @@ export function floorMaterial() {
         float ring1 = 1.0 - smoothstep(0.025, 0.07, abs(r - 9.4));
         float ring2 = (1.0 - smoothstep(0.015, 0.05, abs(r - 12.4))) * step(0.45, fract(ang * 96.0));
         float ring3 = 1.0 - smoothstep(0.02, 0.06, abs(r - 25.9));
-        col += uRingColor * (ring1 * 3.2 + ring2 * 1.4 + ring3 * 1.6) * chase;
+        col += (uRingColor * (ring1 * 3.2 + ring3 * 1.6) + uAccentColor * ring2 * 1.6) * chase;
         col += uRingColor * exp(-abs(r - 9.4) * 1.6) * 0.035 * uRings;
         gl_FragColor = vec4(applyFog(col, vDist), 1.0);
       }
@@ -270,12 +272,14 @@ export function crowdMaterial() {
       uScale: { value: 600 },
       uWave: { value: 0 },
       uWaveOn: { value: 0 },
+      uWaveColor: { value: new THREE.Color(0x73b3ff) },
       uPixelRatio: { value: 1 },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
       attribute vec4 aData;
       uniform float uTime, uPower, uScale, uWave, uWaveOn, uFogDensity;
+      uniform vec3 uWaveColor;
       varying vec3 vColor;
       varying float vAlpha;
       void main(){
@@ -300,7 +304,7 @@ export function crowdMaterial() {
           col = vec3(0.0);
           a = 0.0;
         }
-        col += vec3(0.45, 0.7, 1.0) * wave * 2.2 * step(0.0, 0.62 - kind);
+        col += uWaveColor * wave * 2.2 * step(0.0, 0.62 - kind);
         a = max(a, wave * step(0.0, 0.62 - kind));
         a *= step(aData.w, uPower);
         float fd = uFogDensity * dist;
