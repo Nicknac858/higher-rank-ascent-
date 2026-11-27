@@ -259,6 +259,33 @@ export function makeMonitorTexture() {
   return finish(c, { mipmaps: true });
 }
 
+// Backlit esports keyboard seen from above: dark keycaps with a cool glow around each.
+export function makeKeyboardTexture() {
+  const W = 512;
+  const H = 168;
+  const c = makeCanvas(W, H);
+  const g = c.getContext('2d');
+  g.fillStyle = '#05070b';
+  g.fillRect(0, 0, W, H);
+  const rows = [15, 15, 14, 13, 12, 8];
+  const kh = 22;
+  rows.forEach((n, r) => {
+    const kw = (W - 24) / 15;
+    const y = 10 + r * (kh + 4);
+    const off = (15 - n) * kw * 0.5;
+    for (let i = 0; i < n; i++) {
+      const wide = r === 5 && i === 3 ? 4 : 1;
+      if (r === 5 && i > 3 && i < 7) continue;
+      const x = 12 + off + i * kw;
+      g.fillStyle = 'rgba(60,130,255,0.55)';
+      g.fillRect(x - 1, y - 1, kw * wide - 2, kh + 2);
+      g.fillStyle = '#0b0e14';
+      g.fillRect(x + 1, y + 1, kw * wide - 6, kh - 2);
+    }
+  });
+  return finish(c, { mipmaps: true });
+}
+
 // Broadcast screens for the three services. Each carries a clear placeholder label.
 export function makeScreenTexture(kind) {
   const W = 1280;

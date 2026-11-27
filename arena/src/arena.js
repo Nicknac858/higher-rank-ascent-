@@ -4,11 +4,12 @@
 // so t = 0 points at the hero camera (+Z).
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {
   ledMaterial, stripMaterial, beamMaterial, floorMaterial, crowdMaterial,
   bokehMaterial, hazeMaterial, flareMaterial, MAX_POOLS,
 } from './materials.js';
-import { makeHaloTexture, makeTickerTexture, makeUndersideTexture, makeMonitorTexture } from './textures.js';
+import { makeHaloTexture, makeTickerTexture, makeUndersideTexture, makeMonitorTexture, makeKeyboardTexture } from './textures.js';
 
 const TAU = Math.PI * 2;
 const polar = (r, t, y) => new THREE.Vector3(r * Math.sin(t), y, r * Math.cos(t));
@@ -141,7 +142,9 @@ export function buildArena({ quality, renderer, accent = null }) {
     matte: new THREE.MeshStandardMaterial({ color: 0x07090c, metalness: 0.15, roughness: 0.78, envMapIntensity: 0.5 }),
     stageTop: new THREE.MeshPhysicalMaterial({ color: 0x030406, metalness: 0.0, roughness: 0.32, clearcoat: 1.0, clearcoatRoughness: 0.05, envMapIntensity: 1.0 }),
     bowl: new THREE.MeshStandardMaterial({ color: 0x080a0f, metalness: 0.05, roughness: 0.92, envMapIntensity: 0.16, side: THREE.DoubleSide }),
-    chair: new THREE.MeshStandardMaterial({ color: 0x0d1016, metalness: 0.3, roughness: 0.55, envMapIntensity: 0.8 }),
+    chair: new THREE.MeshPhysicalMaterial({ color: 0x0c0e13, metalness: 0.0, roughness: 0.46, clearcoat: 0.45, clearcoatRoughness: 0.32, envMapIntensity: 1.0 }),
+    chairMetal: new THREE.MeshStandardMaterial({ color: 0x1a1d23, metalness: 0.92, roughness: 0.28, envMapIntensity: 1.2 }),
+    plastic: new THREE.MeshStandardMaterial({ color: 0x0b0c10, metalness: 0.2, roughness: 0.4, envMapIntensity: 0.85 }),
   };
   anim.materials = M;
 
@@ -201,19 +204,102 @@ export function buildArena({ quality, renderer, accent = null }) {
   anim.strips.push({ mat: pedRing.material, group: 'stage' });
 
   // ---------- team booths ----------
+  // Two five-seat team desks. Each seat: an esports racing chair, a thin-bezel monitor on a stand,
+  // a backlit keyboard, mouse pad and mouse. Parts are built in a local frame (+z toward the player
+  // for desk items, +z toward the desk for the chair) and merged per material.
   const monitorTex = makeMonitorTexture();
   const monitorMat = new THREE.MeshBasicMaterial({ map: monitorTex, color: new THREE.Color(0, 0, 0), toneMapped: false });
   anim.monitors = monitorMat;
-  const pipingMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0, 0), toneMapped: false });
+  const keyboardMat = new THREE.MeshBasicMaterial({ map: makeKeyboardTexture(), color: new THREE.Color(0, 0, 0), toneMapped: false });
+  anim.keyboards = keyboardMat;
+  const accentCol = new THREE.Color(ACC ?? 0x2f7dff);
+  const pipingMat = new THREE.MeshStandardMaterial({ color: accentCol, roughness: 0.5, metalness: 0.1, emissive: accentCol, emissiveIntensity: 0 });
   anim.chairPiping = pipingMat;
-  const deskGeos = [];
-  const chairGeos = [];
-  const pipeGeos = [];
-  const screenGeos = [];
+  const B = {
+    leather: [], metal: [], plastic: [], piping: [], screen: [], keys: [], pad: [],
+  };
+  const deskGeos0 = [];
+  const rbox = (w, h, d, r, seg = 2) => new RoundedBoxGeometry(w, h, d, seg, Math.min(r, w / 2, h / 2, d / 2) * 0.999);
+  const at = (g, x, y, z, rx = 0, ry = 0, rz = 0) => {
+    if (rx) g.rotateX(rx);
+    if (ry) g.rotateY(ry);
+    if (rz) g.rotateZ(rz);
+    g.translate(x, y, z);
+    return g;
+  };
+  const _bm = new THREE.Matrix4();
+  const place = (list, yaw, pos) => {
+    _bm.makeRotationY(yaw).setPosition(pos);
+    return list.map((g) => g.applyMatrix4(_bm));
+  };
+
+  function chair() {
+    const L = []; const Mt = []; const P = []; const A = [];
+    // five-star base with casters
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * TAU + 0.3;
+      Mt.push(at(rbox(0.05, 0.035, 0.31, 0.012), Math.sin(a) * 0.165, 0.085, Math.cos(a) * 0.165, -0.12, a));
+      P.push(at(new THREE.CylinderGeometry(0.03, 0.03, 0.034, 12), Math.sin(a) * 0.31, 0.032, Math.cos(a) * 0.31, 0, a, Math.PI / 2));
+    }
+    Mt.push(at(new THREE.CylinderGeometry(0.052, 0.06, 0.06, 16), 0, 0.1, 0));
+    Mt.push(at(new THREE.CylinderGeometry(0.021, 0.021, 0.3, 12), 0, 0.27, 0));
+    P.push(at(new THREE.CylinderGeometry(0.036, 0.04, 0.13, 16), 0, 0.19, 0));
+    Mt.push(at(rbox(0.24, 0.04, 0.24, 0.012), 0, 0.42, 0));
+    // seat with side bolsters
+    L.push(at(rbox(0.38, 0.085, 0.46, 0.035, 3), 0, 0.48, 0.02));
+    for (const sx of [-1, 1]) L.push(at(rbox(0.075, 0.12, 0.48, 0.035, 3), sx * 0.225, 0.5, 0.02));
+    // armrests
+    for (const sx of [-1, 1]) {
+      P.push(at(rbox(0.035, 0.22, 0.07, 0.012), sx * 0.3, 0.55, -0.04));
+      P.push(at(rbox(0.09, 0.03, 0.27, 0.013), sx * 0.3, 0.675, -0.01));
+    }
+    // backrest, tilted back about its base
+    const back = [];
+    const backA = [];
+    back.push(at(rbox(0.44, 0.7, 0.075, 0.035, 3), 0, 0.38, -0.02));
+    back.push(at(rbox(0.31, 0.2, 0.075, 0.035, 3), 0, 0.82, -0.02));
+    for (const sx of [-1, 1]) {
+      back.push(at(rbox(0.08, 0.6, 0.12, 0.04, 3), sx * 0.25, 0.33, 0.005, 0, -sx * 0.1));
+      back.push(at(rbox(0.095, 0.2, 0.11, 0.04, 3), sx * 0.235, 0.7, 0.0, 0, -sx * 0.28));
+      backA.push(at(rbox(0.014, 0.56, 0.014, 0.006), sx * 0.212, 0.34, 0.068, 0, -sx * 0.1));
+    }
+    back.push(at(rbox(0.24, 0.11, 0.065, 0.03, 3), 0, 0.82, 0.05));
+    back.push(at(rbox(0.3, 0.12, 0.06, 0.03, 3), 0, 0.2, 0.05));
+    for (const g of [...back, ...backA]) { g.rotateX(-0.2); g.translate(0, 0.5, -0.22); }
+    L.push(...back);
+    A.push(...backA);
+    return { L, Mt, P, A };
+  }
+
+  function deskSet() {
+    const P = []; const S = []; const K = []; const Pd = [];
+    // monitor: base, neck, back housing, thin-bezel panel, screen
+    P.push(at(rbox(0.27, 0.014, 0.2, 0.006), 0, 0.007, 0.0));
+    P.push(at(rbox(0.06, 0.3, 0.026, 0.009), 0, 0.165, -0.05, -0.1));
+    const head = [];
+    head.push(rbox(0.3, 0.2, 0.05, 0.02));
+    head[0].translate(0, -0.02, -0.04);
+    head.push(rbox(0.62, 0.365, 0.022, 0.006));
+    const scr = new THREE.PlaneGeometry(0.604, 0.344);
+    scr.translate(0, 0.004, 0.0115);
+    for (const g of [...head, scr]) { g.rotateX(-0.06); g.translate(0, 0.37, -0.025); }
+    P.push(...head);
+    S.push(scr);
+    // keyboard (backlit keys on top), mouse pad and mouse to the player's right
+    P.push(at(rbox(0.36, 0.022, 0.13, 0.007), -0.04, 0.011, 0.3));
+    const top = new THREE.PlaneGeometry(0.34, 0.11);
+    top.rotateX(-Math.PI / 2);
+    top.translate(-0.04, 0.0225, 0.3);
+    K.push(top);
+    Pd.push(at(rbox(0.4, 0.004, 0.32, 0.002), 0.34, 0.002, 0.28));
+    P.push(at(rbox(0.064, 0.036, 0.12, 0.028, 3), 0.36, 0.022, 0.3));
+    return { P, S, K, Pd };
+  }
+
   for (const side of [-1, 1]) {
     const tc = side * Math.PI / 2;
     const span = 0.62;
-    deskGeos.push(arcBox(4.0, 4.75, DIM.stageH, 0.74, tc - span, tc + span, 40));
+    deskGeos0.push(arcBox(4.0, 4.75, DIM.stageH, 0.74, tc - span, tc + span, 40));
     const stripGeo = new THREE.CylinderGeometry(4.77, 4.77, 0.05, 64, 1, true, tc - span, span * 2);
     stripGeo.translate(0, DIM.stageH + 0.62, 0);
     const strip = new THREE.Mesh(stripGeo, stripMaterial({ color: 0x2f7dff, intensity: 3.4 }));
@@ -221,45 +307,29 @@ export function buildArena({ quality, renderer, accent = null }) {
     anim.strips.push({ mat: strip.material, group: 'desks' });
     for (let i = 0; i < 5; i++) {
       const t = tc - span * 0.8 + (i / 4) * span * 1.6;
-      const mp = polar(4.42, t, DIM.stageH + 0.74 + 0.3);
-      const sg = new THREE.PlaneGeometry(0.66, 0.38);
-      sg.rotateY(t);
-      sg.translate(mp.x, mp.y, mp.z);
-      screenGeos.push(sg);
-      const back = new THREE.BoxGeometry(0.7, 0.42, 0.04);
-      back.rotateY(t);
-      const bp = polar(4.39, t, mp.y);
-      back.translate(bp.x, bp.y, bp.z);
-      deskGeos.push(back);
-      const seat = new THREE.BoxGeometry(0.52, 0.09, 0.5);
-      seat.rotateY(t);
-      const spos = polar(5.35, t, DIM.stageH + 0.48);
-      seat.translate(spos.x, spos.y, spos.z);
-      chairGeos.push(seat);
-      const backrest = new THREE.BoxGeometry(0.54, 0.95, 0.09);
-      backrest.rotateY(t);
-      const brp = polar(5.62, t, DIM.stageH + 1.0);
-      backrest.translate(brp.x, brp.y, brp.z);
-      chairGeos.push(backrest);
-      const postG = new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8);
-      const pp = polar(5.35, t, DIM.stageH + 0.22);
-      postG.translate(pp.x, pp.y, pp.z);
-      chairGeos.push(postG);
-      const pipe = new THREE.BoxGeometry(0.035, 0.85, 0.02);
-      pipe.rotateY(t);
-      for (const off of [-0.25, 0.25]) {
-        const pg = pipe.clone();
-        const dir = new THREE.Vector3(Math.cos(t), 0, -Math.sin(t)).multiplyScalar(off);
-        const pos = polar(5.67, t, DIM.stageH + 1.0).add(dir);
-        pg.translate(pos.x, pos.y, pos.z);
-        pipeGeos.push(pg);
-      }
+      const d = deskSet();
+      const dPos = polar(4.27, t, DIM.stageH + 0.74);
+      B.plastic.push(...place(d.P, t, dPos));
+      B.screen.push(...place(d.S, t, dPos));
+      B.keys.push(...place(d.K, t, dPos));
+      B.pad.push(...place(d.Pd, t, dPos));
+      const c = chair();
+      const cPos = polar(5.32, t + (rand() - 0.5) * 0.02, DIM.stageH);
+      const yaw = t + Math.PI + (rand() - 0.5) * 0.3;
+      B.leather.push(...place(c.L, yaw, cPos));
+      B.metal.push(...place(c.Mt, yaw, cPos));
+      B.plastic.push(...place(c.P, yaw, cPos));
+      B.piping.push(...place(c.A, yaw, cPos));
     }
   }
-  stage.add(new THREE.Mesh(merge(deskGeos), M.metalDark));
-  stage.add(new THREE.Mesh(merge(chairGeos), M.chair));
-  stage.add(new THREE.Mesh(merge(pipeGeos), pipingMat));
-  stage.add(new THREE.Mesh(merge(screenGeos), monitorMat));
+  stage.add(new THREE.Mesh(merge(deskGeos0), M.metalDark));
+  stage.add(new THREE.Mesh(merge(B.leather), M.chair));
+  stage.add(new THREE.Mesh(merge(B.metal), M.chairMetal));
+  stage.add(new THREE.Mesh(merge(B.plastic), M.plastic));
+  stage.add(new THREE.Mesh(merge(B.piping), pipingMat));
+  stage.add(new THREE.Mesh(merge(B.screen), monitorMat));
+  stage.add(new THREE.Mesh(merge(B.keys), keyboardMat));
+  stage.add(new THREE.Mesh(merge(B.pad), M.matte));
 
   // ---------- halo ----------
   const halo = new THREE.Group();
@@ -734,7 +804,8 @@ export function buildArena({ quality, renderer, accent = null }) {
 
     const flick = P.desks < 1 ? (Math.sin(time * 61.0) > 0.2 ? 1 : 0.35) : 1;
     anim.monitors.color.setScalar(1.35 * P.desks * flick);
-    anim.chairPiping.color.setRGB(0.18 * 3.0, 0.45 * 3.0, 1.0 * 3.0).multiplyScalar(P.desks);
+    anim.chairPiping.emissiveIntensity = 0.6 * P.desks;
+    anim.keyboards.color.setScalar(0.9 * P.desks * flick);
 
     halo.rotation.y = time * 0.035 * motion;
 
