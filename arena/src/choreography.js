@@ -61,10 +61,13 @@ export function placeCamera(camera, T, { mobile, time, pointer, motion }) {
   camera.position.set(k.r * Math.sin(th), y, k.r * Math.cos(th));
   _look.set(pointer.x * 0.6 * drift, k.ty + pointer.y * 0.25 * drift, 0);
   camera.lookAt(_look);
-  const fh = 1000;
-  const fw = fh * camera.aspect;
+  // Frame offsets as a small turn of the camera rather than a lens shift: a shifted
+  // frustum breaks the mirrored camera used for the floor reflection.
   camera.fov = k.fov;
-  camera.setViewOffset(fw, fh, k.ox * fw, k.oy * fh, fw, fh);
+  const vf = THREE.MathUtils.degToRad(k.fov);
+  const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+  camera.rotateY(-k.ox * hf);
+  camera.rotateX(-k.oy * vf);
   camera.updateProjectionMatrix();
   // focus distance for the bokeh dust: the stage centre
   return Math.hypot(camera.position.x, camera.position.y - DIM.stageH, camera.position.z);

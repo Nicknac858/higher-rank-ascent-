@@ -1,8 +1,8 @@
 // Device tiers and a frame-time governor that trades resolution for smoothness.
 
 const TIERS = {
-  3: { tier: 3, dpr: 1.5, msaa: 4, refl: 0.5, crowd: 12000, dust: 380, spots: 16, washes: 12, realSpots: 3, trussSegs: 96 },
-  2: { tier: 2, dpr: 1.25, msaa: 4, refl: 0.42, crowd: 9000, dust: 300, spots: 16, washes: 8, realSpots: 2, trussSegs: 80 },
+  3: { tier: 3, dpr: 1.5, msaa: 4, refl: 0.5, crowd: 20000, dust: 380, spots: 16, washes: 12, realSpots: 3, trussSegs: 96 },
+  2: { tier: 2, dpr: 1.25, msaa: 4, refl: 0.42, crowd: 14000, dust: 300, spots: 16, washes: 8, realSpots: 2, trussSegs: 80 },
   1: { tier: 1, dpr: 1.0, msaa: 0, refl: 0.32, crowd: 7000, dust: 180, spots: 12, washes: 0, realSpots: 1, trussSegs: 64 },
 };
 
@@ -36,7 +36,7 @@ export function detectQuality(params) {
   if (mobile) {
     q.dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     q.refl = 0.36;
-    q.crowd = Math.min(q.crowd, 7000);
+    q.crowd = Math.min(q.crowd, 10000);
     q.dust = Math.min(q.dust, 240);
     q.msaa = 4;
   } else {

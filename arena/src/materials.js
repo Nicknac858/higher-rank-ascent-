@@ -248,7 +248,10 @@ export function floorMaterial() {
         vec2 tile = abs(fract(p / 2.4) - 0.5);
         float seam = smoothstep(0.492, 0.5, max(tile.x, tile.y));
         base *= 1.0 - seam * 0.5;
-        vec3 col = base + refl * mix(0.32, 1.0, fres) * uReflPower * (1.0 - seam * 0.35);
+        // the polished deck is strongest around the stage; out by the barrier it turns satin
+        float deck = mix(0.28, 1.0, smoothstep(22.0, 13.0, r));
+        refl = min(refl, vec3(1.6));
+        vec3 col = base + refl * mix(0.32, 1.0, fres) * uReflPower * deck * (1.0 - seam * 0.35);
         for (int i = 0; i < ${MAX_POOLS}; i++){
           vec2 d = p - uPools[i].xz;
           float rr = uPools[i].w;
@@ -327,18 +330,23 @@ export function crowdMaterial() {
         float kind = aData.y;
         vec3 col = vec3(0.0);
         float a = 0.0;
-        if (kind < 0.12) {
+        if (kind < 0.16) {
           float raise = smoothstep(0.58, 0.74, vnoise3(vec3(r1 * 13.0 + ang * 2.0, r2 * 7.0, t * 0.035 + r3 * 31.0)));
           p.y += raise * 0.38;
           float flick = 0.85 + 0.15 * sin(t * (7.0 + r2 * 9.0) + r3 * 40.0);
           col = vec3(0.86, 0.9, 1.0) * 1.6 * flick;
           a = raise;
-        } else if (kind < 0.40) {
+        } else if (kind < 0.52) {
           float cue = vnoise3(vec3(ang * 2.2 - t * 0.11, base.y * 0.09 + t * 0.02, t * 0.03));
-          float lvl = 0.16 + 0.84 * smoothstep(0.42, 0.72, cue) * (0.7 + 0.3 * energy);
+          float lvl = 0.3 + 0.7 * smoothstep(0.42, 0.72, cue) * (0.7 + 0.3 * energy);
           vec3 blue = mix(vec3(0.05, 0.22, 1.0), vec3(0.25, 0.55, 1.0), r2);
-          col = mix(blue, uAccent, step(0.68, r3)) * 1.1;
+          col = mix(blue, uAccent, step(0.68, r3)) * 1.25;
           a = lvl;
+        } else {
+          // everyone else: faint spill from the stage on the lower rows, so the bowl reads as people
+          float spill = smoothstep(46.0, 30.0, rad) * smoothstep(13.0, 3.0, base.y);
+          col = vec3(0.32, 0.4, 0.62);
+          a = spill * (0.05 + 0.1 * energy) * (0.6 + 0.4 * r2);
         }
 
         float lit = 0.0;
@@ -353,7 +361,7 @@ export function crowdMaterial() {
         a = max(a, min(1.0, lit) * (0.3 + 0.7 * r2));
 
         float dA = abs(mod(ang - uWave + 3.14159, 6.28318) - 3.14159);
-        float wave = exp(-dA * dA * uWaveWidth) * uWaveOn * step(kind, 0.62);
+        float wave = exp(-dA * dA * uWaveWidth) * uWaveOn * step(kind, 0.7);
         col += uWaveColor * wave * 2.0;
         a = max(a, wave);
         a *= step(aData.w, uPower);
