@@ -7,7 +7,8 @@ import {
   SMAAEffect, SMAAPreset,
 } from 'postprocessing';
 import { buildArena, buildEnvironment } from './arena.js';
-import { fogUniforms, screenMaterial } from './materials.js';
+import { fogUniforms } from './materials.js';
+import { GlassPass, paneGeometry, glassMaterial } from './glass.js';
 import { makeScreenTexture, setAccent } from './textures.js';
 import { placeCamera, powerAt, placeScreen, serviceState } from './choreography.js';
 import { detectQuality, Governor } from './quality.js';
@@ -211,15 +212,20 @@ async function boot() {
 
   const SW = 4.8;
   const SH = 2.7;
-  const screenGeo = new THREE.PlaneGeometry(SW, SH, 48, 27);
+  // glass panes live in their own scene, drawn by the glass pass over a frosted copy of the frame
+  const glassScene = new THREE.Scene();
+  const glassPass = new GlassPass(glassScene, camera, { type: bufferType });
+  const paneGeo = paneGeometry(SW, SH, 0.035, 0.16);
   const screens = [0, 1, 2].map((k) => {
-    const mat = screenMaterial(makeScreenTexture(k), SW, SH);
-    const mesh = new THREE.Mesh(screenGeo, mat);
+    const mat = glassMaterial({
+      map: makeScreenTexture(k), W: SW, H: SH, r: 0.035, corner: 0.16,
+      accent: ACCENT ? ACCENT.hex : 0x2f6dff, shared: glassPass.uniforms,
+    });
+    const mesh = new THREE.Mesh(paneGeo, mat);
     mesh.frustumCulled = false;
-    mesh.renderOrder = 8;
     mesh.visible = false;
-    scene.add(mesh);
-    return { mesh, mat, W: SW, H: SH, bend: 0 };
+    glassScene.add(mesh);
+    return { mesh, mat, W: SW, H: SH, spring: null };
   });
 
   const reflection = createReflection(renderer, { type: bufferType });
@@ -237,6 +243,7 @@ async function boot() {
 
   const composer = new EffectComposer(renderer, { frameBufferType: bufferType, multisampling: q.msaa });
   composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(glassPass);
   const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 1.0, luminanceSmoothing: 0.3, intensity: 0.7, radius: 0.56, levels: 7, resolutionScale: q.bloomScale });
   const toneMode = params.get('tone') === 'agx' ? ToneMappingMode.AGX : ToneMappingMode.ACES_FILMIC;
   const tone = new ToneMappingEffect({ mode: toneMode });
@@ -301,7 +308,8 @@ async function boot() {
     pointer.y = damp(pointer.y, pointer.ty, 2.5, dt);
     const focusDist = placeCamera(camera, MOTION ? T : 0, { mobile, time, pointer, motion: MOTION });
     camera.updateMatrixWorld();
-    screens.forEach((s, i) => placeScreen(s, i, T, camera, { mobile, velocity, time, motion: MOTION }));
+    screens.forEach((s, i) => placeScreen(s, i, T, camera, { mobile, velocity, motion: MOTION, dt, snap: TEST }));
+    glassPass.enabled = screens.some((s) => s.mesh.visible);
     let screenFocus = 0;
     for (let i = 0; i < 3; i++) screenFocus = Math.max(screenFocus, serviceState(i, T).focus);
     power.screenFocus = screenFocus;
@@ -369,6 +377,8 @@ async function boot() {
   placeCamera(camera, 0, { mobile: camera.aspect < 0.9 || mobileMQ.matches, time: 0, pointer, motion: MOTION });
   camera.updateMatrixWorld();
   try { await renderer.compileAsync(scene, camera); } catch (e) { /* compile lazily */ }
+  screens.forEach((s) => { s.mesh.visible = true; });
+  try { await renderer.compileAsync(glassScene, camera); } catch (e) { /* compile lazily */ }
   screens.forEach((s) => { s.mesh.visible = false; });
 
   if (TEST) {

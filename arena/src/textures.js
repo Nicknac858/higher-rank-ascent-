@@ -34,9 +34,10 @@ function spacing(ctx, px) {
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${px}px`;
 }
 
-function finish(c, { wrap = false, mipmaps = false } = {}) {
+function finish(c, { wrap = false, mipmaps = false, premultiply = false } = {}) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.premultiplyAlpha = premultiply;
   t.generateMipmaps = mipmaps;
   t.minFilter = mipmaps ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
   t.magFilter = THREE.LinearFilter;
@@ -265,10 +266,10 @@ export function makeScreenTexture(kind) {
   const c = makeCanvas(W, H);
   const g = c.getContext('2d');
 
-  const bg = g.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#061433');
-  bg.addColorStop(0.6, '#020815');
-  bg.addColorStop(1, '#00030a');
+  // transparent background: this is the content layer of a glass pane, the frosted glass shows through
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, 'rgba(10,30,90,0.10)');
+  bg.addColorStop(1, 'rgba(0,6,20,0.22)');
   g.fillStyle = bg;
   g.fillRect(0, 0, W, H);
 
@@ -396,8 +397,12 @@ export function makeScreenTexture(kind) {
 
   // lower third
   const title = ['WEB DESIGN', 'MARKETING', 'LIVE EVENTS & ESPORTS'][kind];
-  g.fillStyle = 'rgba(0,4,14,0.75)';
-  g.fillRect(0, H - 150, W, 150);
+  const lt = g.createLinearGradient(0, H - 190, 0, H);
+  lt.addColorStop(0, 'rgba(0,4,14,0)');
+  lt.addColorStop(0.3, 'rgba(0,4,14,0.62)');
+  lt.addColorStop(1, 'rgba(0,4,14,0.8)');
+  g.fillStyle = lt;
+  g.fillRect(0, H - 190, W, 190);
   g.fillStyle = ACCENT;
   g.fillRect(74, H - 112, 10, 74);
   g.fillStyle = WHITE;
@@ -405,5 +410,5 @@ export function makeScreenTexture(kind) {
   fitText(g, title, W - 220, 800, 64, DISPLAY, 'expanded');
   g.fillText(title, 108, H - 74);
 
-  return finish(c, { mipmaps: true });
+  return finish(c, { mipmaps: true, premultiply: true });
 }

@@ -126,18 +126,21 @@ const WAVES = (() => {
   return list;
 })();
 
-// Broadcast screen paths in camera space. [x, y] are fractions of the half-extent of the
-// view at that depth, z is depth (negative = in front), then yaw, pitch, roll in radians.
+// Glass window paths in camera space. [x, y] are fractions of the half-extent of the view at that
+// depth, z is depth (negative = in front). Then yaw, pitch, roll in radians, measured from "facing the
+// camera" (so 0 always means square-on wherever the pane is in frame).
+// A pane enters edge-on from beyond the right edge, a sliver of light, turns open as it glides into
+// place, then keeps turning the same way as it leaves left: one continuous revolution through the frame.
 const PATHS = {
   desktop: {
-    enter: [1.05, -1.05, -16, -0.85, 0.22, -0.20],
-    focus: [0.27, 0.0, -9.6, -0.24, 0.0, 0.0],
-    exit: [-0.55, 1.10, -14, 0.62, -0.18, 0.18],
+    enter: [1.45, -0.08, -13.0, 1.45, 0.05, -0.04],
+    focus: [0.27, 0.0, -9.6, -0.10, 0.0, 0.0],
+    exit: [-1.45, 0.12, -12.0, -1.45, -0.05, 0.04],
   },
   mobile: {
-    enter: [1.15, -0.55, -15, -0.85, 0.18, -0.18],
-    focus: [0.0, 0.27, -10.5, -0.12, 0.0, 0.0],
-    exit: [-1.15, 0.95, -13, 0.70, -0.12, 0.18],
+    enter: [1.6, -0.12, -14.0, 1.45, 0.05, -0.04],
+    focus: [0.0, 0.27, -10.5, 0.0, 0.0, 0.0],
+    exit: [-1.6, 0.5, -13.0, -1.45, -0.05, 0.04],
   },
 };
 export const FOCUS_T = [1, 2, 3];
@@ -145,81 +148,112 @@ export const FOCUS_T = [1, 2, 3];
 const _p = new THREE.Vector3();
 const _e = new THREE.Euler();
 const _q = new THREE.Quaternion();
+const _m4 = new THREE.Matrix4();
+const _target = new Array(6).fill(0);
 
 export function serviceState(i, T) {
   const u = T - FOCUS_T[i];
   const focus = 1 - smooth(0.1, 0.42, Math.abs(u));
   const opacity = smooth(-0.78, -0.62, u) * (1 - smooth(0.62, 0.78, u));
-  const reveal = smooth(-0.74, -0.22, u);
+  // content powers on once the glass has mostly turned to face you
+  const reveal = smooth(-0.5, -0.16, u);
   const text = 1 - smooth(0.12, 0.3, Math.abs(u));
   return { u, focus, opacity, reveal, text };
 }
 
-export function placeScreen(screen, i, T, camera, { mobile, velocity, time, motion }) {
+// Pane follows its scroll-driven target through a slightly under-damped spring: it carries a little
+// weight and settles, instead of being glued to the scrollbar.
+const OMEGA = 10;
+const ZETA = 0.78;
+
+export function placeScreen(screen, i, T, camera, { mobile, velocity, motion, dt = 1 / 60, snap = false }) {
   const path = mobile ? PATHS.mobile : PATHS.desktop;
   const s = serviceState(i, T);
   const { u } = s;
-  const vis = s.opacity > 0.001 && Math.abs(u) < 0.8;
+  // reduced motion: panes stay put and crossfade halfway between sections
+  const still = 1 - smooth(0.4, 0.6, Math.abs(u));
+  const vis = motion ? Math.abs(u) < 0.95 : still > 0.001;
   screen.mesh.visible = vis;
-  if (!vis) return s;
-  let a;
-  let b;
-  let kx;
-  let ky;
-  let kz;
-  let kr;
-  if (u < -0.1) {
+  if (!vis) {
+    if (screen.spring) screen.spring.live = false;
+    return s;
+  }
+  let a = path.focus;
+  let b = path.focus;
+  let kx = 0;
+  let ky = 0;
+  let kz = 0;
+  let kr = 0;
+  if (motion && u < -0.1) {
     const k = clamp((u + 0.78) / 0.68, 0, 1);
     a = path.enter;
-    b = path.focus;
-    kx = 1 - Math.pow(1 - k, 2.0);
-    ky = 1 - Math.pow(1 - k, 3.0);
-    kz = 1 - Math.pow(1 - k, 2.4);
-    kr = 1 - Math.pow(1 - k, 2.6);
-  } else if (u > 0.1) {
+    kx = 1 - Math.pow(1 - k, 2.4);
+    ky = 1 - Math.pow(1 - k, 2.0);
+    kz = 1 - Math.pow(1 - k, 2.2);
+    kr = k * k * (3 - 2 * k);
+  } else if (motion && u > 0.1) {
     const k = clamp((u - 0.1) / 0.68, 0, 1);
-    a = path.focus;
     b = path.exit;
-    kx = Math.pow(k, 2.4);
-    ky = Math.pow(k, 1.7);
+    kx = Math.pow(k, 2.2);
+    ky = Math.pow(k, 1.8);
     kz = Math.pow(k, 2.0);
-    kr = Math.pow(k, 2.2);
+    kr = k * k * (3 - 2 * k);
+  }
+  const lerp = THREE.MathUtils.lerp;
+  _target[0] = lerp(a[0], b[0], kx);
+  _target[1] = lerp(a[1], b[1], ky);
+  _target[2] = lerp(a[2], b[2], kz);
+  // inertia: a quick scroll leans the pane a few degrees, the spring brings it back
+  const v = motion ? velocity : 0;
+  _target[3] = lerp(a[3], b[3], kr) + clamp(v * 0.22, -0.14, 0.14);
+  _target[4] = lerp(a[4], b[4], kr) - clamp(v * 0.06, -0.04, 0.04);
+  _target[5] = lerp(a[5], b[5], kr);
+
+  let sp = screen.spring;
+  if (!sp) sp = screen.spring = { x: new Array(6).fill(0), v: new Array(6).fill(0), live: false };
+  if (snap || !motion || !sp.live) {
+    for (let j = 0; j < 6; j++) { sp.x[j] = _target[j]; sp.v[j] = 0; }
+    sp.live = true;
   } else {
-    a = path.focus;
-    b = path.focus;
-    kx = ky = kz = kr = 0;
+    let left = Math.min(dt, 0.1);
+    while (left > 1e-6) {
+      const h = Math.min(left, 1 / 120);
+      for (let j = 0; j < 6; j++) {
+        const acc = OMEGA * OMEGA * (_target[j] - sp.x[j]) - 2 * ZETA * OMEGA * sp.v[j];
+        sp.v[j] += acc * h;
+        sp.x[j] += sp.v[j] * h;
+      }
+      left -= h;
+    }
   }
-  if (!motion) {
-    a = path.focus;
-    b = path.focus;
-  }
-  const z = THREE.MathUtils.lerp(a[2], b[2], kz);
+
+  const z = sp.x[2];
   const halfH = Math.abs(z) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   const halfW = halfH * camera.aspect;
-  const x = THREE.MathUtils.lerp(a[0], b[0], kx) * halfW;
-  const y = THREE.MathUtils.lerp(a[1], b[1], ky) * halfH;
+  const x = sp.x[0] * halfW;
+  const y = sp.x[1] * halfH;
   _p.set(x, y, z);
-  _e.set(
-    THREE.MathUtils.lerp(a[4], b[4], kr),
-    THREE.MathUtils.lerp(a[3], b[3], kr),
-    THREE.MathUtils.lerp(a[5], b[5], kr),
-    'YXZ',
-  );
+  // angles are relative to facing the camera from where the pane is
+  const yaw = sp.x[3] - Math.atan2(x, -z);
+  const pitch = sp.x[4] + Math.atan2(y, -z);
+  _e.set(pitch, yaw, sp.x[5], 'YXZ');
   _q.setFromEuler(_e);
   screen.mesh.position.copy(_p).applyMatrix4(camera.matrixWorld);
   screen.mesh.quaternion.copy(camera.quaternion).multiply(_q);
   const sizeK = mobile ? Math.min(1.0, (halfW * 2 * 0.92) / screen.W) : 1;
   screen.mesh.scale.setScalar(sizeK);
+  // nearer panes draw last
+  screen.mesh.renderOrder = Math.round(1000 - Math.abs(z) * 10);
 
   const m = screen.mat.uniforms;
-  m.uTime.value = time;
-  m.uOpacity.value = s.opacity;
+  m.uObjToView.value.setFromMatrix4(_m4.makeRotationFromQuaternion(_q));
+  m.uViewToWorld.value.setFromMatrix4(_m4.makeRotationFromQuaternion(camera.quaternion));
+  m.uPaneView.value.copy(_p);
+  m.uScale.value = sizeK;
+  m.uOpacity.value = motion ? 1 : still;
   m.uReveal.value = motion ? s.reveal : 1;
   m.uFocus.value = s.focus;
-  const lean = motion ? -Math.sign(u) * (1 - s.focus) * 0.55 : 0;
-  const target = clamp(lean + velocity * 1.4 * (motion ? 1 : 0), -1.1, 1.1);
-  screen.bend += (target - screen.bend) * 0.12;
-  m.uBend.value = screen.bend;
-  m.uFlutter.value = motion ? Math.min(1, Math.abs(velocity) * 2.5 + (1 - s.focus) * 0.25) : 0;
+  m.uEdge.value = 1 + 1.2 * (1 - s.focus);
+  m.uSheen.value = 0.06 + 0.3 * (1 - s.focus);
   return s;
 }
