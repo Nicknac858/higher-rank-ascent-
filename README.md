@@ -24,7 +24,8 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
-- `v11-arena-ultraviolet.html` — The Arena with ultraviolet as the second colour (current, owner's pick)
+- `v12-arena-crowd-crisp.html` — The Arena: organic crowd, crisp rendering pass, lens points, reflection fix (current)
+- `v11-arena-ultraviolet.html` — The Arena with ultraviolet as the second colour (owner's pick)
 - `v10-arena-electric-purple.html` — The Arena with vivid electric purple as the second colour
 - `v9-arena-magenta.html` — The Arena with magenta as the second colour
 - `v8-arena-stage-one.html` — The Arena, stage one, blue only

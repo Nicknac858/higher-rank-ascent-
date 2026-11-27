@@ -63,6 +63,22 @@ dashed floor ring, the crowd wave and the screens' broadcast bars. Buttons stay 
 Compare other options with `?accent=electric|hot|magenta|purple|violet|gold|aqua|blue`, or `#electric` etc. on the
 artifact link. The default lives in `src/main.js` (`ACCENTS`).
 
+## Crowd
+
+Never a visible loop: each person sways at their own tempo with a phase that wanders,
+sections get livelier and calmer on a slow noise field, phones are raised and lowered at
+random moments, wristbands follow a drifting show pattern (a third of them in the accent
+colour), waves run on an irregular schedule (gaps, speed, direction and span all vary), and
+the four crowd beams light up whoever they sweep across. All in the vertex shader.
+
+## Crispness
+
+Desktop renders above native resolution within a pixel budget (up to 2x, ~5.2 MP), then a
+contrast-adaptive sharpening pass runs after tone mapping. LED walls keep their diodes fixed
+and show cabinet seams; content steps across them like a real wall. Every fixture has a
+crisp lens point with a thin anamorphic streak. Add `#stats` to the link for a frame-rate
+and resolution readout.
+
 ## Quality and fallbacks
 
 - Tiers: desktop high, phone (DPR capped at 1.75), low. `?q=low|mid|high` forces one.

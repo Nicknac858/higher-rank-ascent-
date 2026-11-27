@@ -306,6 +306,7 @@ async function boot() {
     statsEl.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font:500 12px/1.4 ui-monospace,monospace;color:#cfe2ff;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre';
     document.body.appendChild(statsEl);
   }
+  if (statsEl) window.__hrGov = gov;
   let fpsEma = 60;
   let statsAt = 0;
   function updateStats(dtMs, now) {

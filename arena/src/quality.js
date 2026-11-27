@@ -73,14 +73,21 @@ export class Governor {
   }
   get current() { return STEPS[this.step]; }
   sample(dtMs, nowMs) {
-    if (dtMs <= 0 || dtMs > 250) return;
+    // The loop pauses while the tab is hidden, so long frames here are real: count them.
+    if (dtMs <= 0) return;
+    if (!this.start) this.start = nowMs;
+    const d = Math.min(dtMs, 1500);
     this.frames++;
-    this.ema = this.ema * 0.93 + dtMs * 0.07;
-    if (this.frames < 30) return;
-    if (this.ema > 21) { this.slow++; this.fast = 0; } else if (this.ema < 13) { this.fast++; this.slow = 0; } else { this.slow = 0; this.fast = 0; }
+    // adapt faster while the estimate is young
+    const k = this.frames < 20 ? 0.25 : 0.07;
+    this.ema = this.ema * (1 - k) + d * k;
+    const settled = this.frames >= 30 || (nowMs - this.start > 2500 && this.frames >= 4);
+    if (!settled) return;
+    if (this.ema > 21) { this.slow += Math.max(1, Math.round(d / 16.7)); this.fast = 0; } else if (this.ema < 13) { this.fast++; this.slow = 0; } else { this.slow = 0; this.fast = 0; }
     if (nowMs - this.last < 1500) return;
     if (this.slow > 45 && this.step < STEPS.length - 1) {
-      this.step++;
+      // far too slow (under ~16 fps): skip a step
+      this.step = Math.min(STEPS.length - 1, this.step + (this.ema > 60 ? 2 : 1));
       this.last = nowMs;
       this.slow = 0;
       this.onChange(STEPS[this.step]);
