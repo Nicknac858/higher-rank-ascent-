@@ -1,0 +1,491 @@
+// Custom shader materials. All output linear HDR colour; tone mapping happens in post.
+import * as THREE from 'three';
+import { NOISE, FOG } from './glsl.js';
+
+export const fogUniforms = {
+  uFogColor: { value: new THREE.Color(0x010206) },
+  uFogDensity: { value: 0.011 },
+};
+
+const VERT_BASIC = /* glsl */ `
+varying vec2 vUv;
+varying float vDist;
+varying vec3 vWorld;
+void main(){
+  vUv = uv;
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorld = wp.xyz;
+  vec4 mv = viewMatrix * wp;
+  vDist = -mv.z;
+  gl_Position = projectionMatrix * mv;
+}
+`;
+
+// LED wall: content sampled per LED cell and drawn as round diodes that blend to an
+// even glow at distance (no moire). uBoot wipes the panel on with a flicker.
+export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side = THREE.FrontSide, flip = false, dot = 0.36, planar = false }) {
+  return new THREE.ShaderMaterial({
+    side,
+    uniforms: {
+      map: { value: map },
+      uGrid: { value: new THREE.Vector2(grid[0], grid[1]) },
+      uTint: { value: new THREE.Color(tint) },
+      uIntensity: { value: intensity },
+      uOffset: { value: 0 },
+      uRepeat: { value: 1 },
+      uTime: { value: 0 },
+      uBoot: { value: 0 },
+      uFlip: { value: flip ? 1 : 0 },
+      uDot: { value: dot },
+      uPlanar: { value: planar ? 1 : 0 },
+      ...fogUniforms,
+    },
+    vertexShader: VERT_BASIC,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D map;
+      uniform vec2 uGrid;
+      uniform vec3 uTint;
+      uniform float uIntensity, uOffset, uRepeat, uTime, uBoot, uFlip, uDot, uPlanar;
+      varying vec2 vUv;
+      varying float vDist;
+      varying vec3 vWorld;
+      ${NOISE}
+      ${FOG}
+      void main(){
+        vec2 uv0 = vUv;
+        if (uFlip > 0.5) uv0.x = 1.0 - uv0.x;
+        vec2 uv = vec2(fract(uv0.x * uRepeat + uOffset), uv0.y);
+        vec2 g = uv * uGrid;
+        vec2 cell = floor(g);
+        vec2 f = fract(g) - 0.5;
+        vec2 suv = (cell + 0.5) / uGrid;
+        vec3 c = texture2D(map, suv).rgb;
+        float px = length(fwidth(uv0 * uGrid));
+        float d = length(f);
+        float dotm = 1.0 - smoothstep(uDot - px * 0.7, uDot + px * 0.7, d);
+        float cover = 3.14159 * uDot * uDot;
+        float m = mix(dotm, cover, smoothstep(0.22, 0.65, px)) / cover;
+        // boot: top-down wipe with a stuttering scan
+        float wipe = smoothstep(0.0, 0.06, uBoot * 1.12 - (1.0 - uv.y));
+        float stutter = uBoot < 0.999 ? (0.45 + 0.55 * step(0.35, hash12(vec2(floor(uTime * 30.0), cell.y * 0.13)))) : 1.0;
+        float scan = 0.92 + 0.08 * sin((uv.y * 2.0 - uTime * 0.35) * 6.2831);
+        vec3 base = vec3(0.010, 0.012, 0.018) * dotm;
+        vec3 col = c * uTint * uIntensity * m * wipe * stutter * scan + base;
+        gl_FragColor = vec4(applyFog(col, vDist), 1.0);
+      }
+    `,
+  });
+}
+
+// Emissive LED strip with a chase reveal (uPower 0..1 lights it along u) and a slow pulse.
+export function stripMaterial({ color = 0x2f7dff, intensity = 3.0, segments = 0, speed = 1.2, reveal = 'u' } = {}) {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: intensity },
+      uTime: { value: 0 },
+      uPower: { value: 0 },
+      uSegments: { value: segments },
+      uSpeed: { value: speed },
+      uRevealV: { value: reveal === 'v' ? 1 : 0 },
+      ...fogUniforms,
+    },
+    vertexShader: VERT_BASIC,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uIntensity, uTime, uPower, uSegments, uSpeed, uRevealV;
+      varying vec2 vUv;
+      varying float vDist;
+      ${FOG}
+      void main(){
+        float t = mix(vUv.x, vUv.y, uRevealV);
+        float on = smoothstep(0.0, 0.015, uPower * 1.03 - t);
+        float seg = uSegments > 0.0 ? 0.55 + 0.45 * smoothstep(0.2, 0.5, abs(fract(vUv.x * uSegments - uTime * uSpeed) - 0.5) * 2.0) : 1.0;
+        float pulse = 0.88 + 0.12 * sin(uTime * 1.3 + vUv.x * 6.2831);
+        vec3 col = uColor * uIntensity * on * seg * pulse;
+        // fresh light flashes brighter right at the chase head
+        col += uColor * uIntensity * 2.0 * smoothstep(0.03, 0.0, abs(uPower * 1.03 - t)) * step(uPower, 0.999);
+        float fogK = 1.0 - fogFactor(vDist) * 0.85;
+        gl_FragColor = vec4(col * fogK + uFogColor * (1.0 - fogK), 1.0);
+      }
+    `,
+  });
+}
+
+// Volumetric beam: an open cone, apex at origin pointing down -Y, unit length.
+export function beamMaterial(color) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.FrontSide,
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: 0 },
+      uTime: { value: 0 },
+      ...fogUniforms,
+    },
+    vertexShader: /* glsl */ `
+      varying float vAlong;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vWorld;
+      varying float vDist;
+      void main(){
+        vAlong = -position.y;
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorld = wp.xyz;
+        vec4 mv = viewMatrix * wp;
+        vV = -mv.xyz;
+        vDist = -mv.z;
+        vN = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uIntensity, uTime;
+      varying float vAlong;
+      varying vec3 vN;
+      varying vec3 vV;
+      varying vec3 vWorld;
+      varying float vDist;
+      ${NOISE}
+      ${FOG}
+      void main(){
+        float facing = abs(dot(normalize(vN), normalize(vV)));
+        float soft = pow(facing, 3.4);
+        float a = clamp(vAlong, 0.0, 1.0);
+        float fall = exp(-a * 1.6) * (0.25 + 0.75 * (1.0 - a));
+        float tip = smoothstep(0.0, 0.025, a);
+        vec3 dp = vWorld * vec3(0.20, 0.32, 0.20) + vec3(0.0, -uTime * 0.10, uTime * 0.04);
+        float dust = 0.45 + 1.0 * (0.62 * vnoise3(dp) + 0.38 * vnoise3(dp * 2.3 + 4.1));
+        float floorFade = smoothstep(0.05, 1.6, vWorld.y);
+        float fogK = 1.0 - fogFactor(vDist) * 0.9;
+        float k = soft * fall * tip * dust * floorFade * fogK * uIntensity;
+        gl_FragColor = vec4(uColor * k, 1.0);
+      }
+    `,
+  });
+}
+
+// Polished arena floor with blurred planar reflections, light pools and inlaid rings.
+export const MAX_POOLS = 16;
+export function floorMaterial() {
+  const pools = [];
+  const poolCols = [];
+  for (let i = 0; i < MAX_POOLS; i++) {
+    pools.push(new THREE.Vector4(0, -100, 0, 1));
+    poolCols.push(new THREE.Vector3(0, 0, 0));
+  }
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      tRefl: { value: null },
+      tReflBlur: { value: null },
+      uTexMatrix: { value: new THREE.Matrix4() },
+      uCamPos: { value: new THREE.Vector3() },
+      uTime: { value: 0 },
+      uRings: { value: 0 },
+      uRingColor: { value: new THREE.Color(0x2f7dff) },
+      uReflPower: { value: 1 },
+      uPools: { value: pools },
+      uPoolCols: { value: poolCols },
+      ...fogUniforms,
+    },
+    vertexShader: /* glsl */ `
+      uniform mat4 uTexMatrix;
+      varying vec4 vRefl;
+      varying vec3 vWorld;
+      varying float vDist;
+      void main(){
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorld = wp.xyz;
+        vRefl = uTexMatrix * vec4(position, 1.0);
+        vec4 mv = viewMatrix * wp;
+        vDist = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D tRefl;
+      uniform sampler2D tReflBlur;
+      uniform vec3 uCamPos;
+      uniform float uTime, uRings, uReflPower;
+      uniform vec3 uRingColor;
+      uniform vec4 uPools[${MAX_POOLS}];
+      uniform vec3 uPoolCols[${MAX_POOLS}];
+      varying vec4 vRefl;
+      varying vec3 vWorld;
+      varying float vDist;
+      ${NOISE}
+      ${FOG}
+      void main(){
+        vec2 p = vWorld.xz;
+        float r = length(p);
+        float n1 = fbm2(p * 0.22);
+        float n2 = vnoise2(p * 9.0);
+        vec2 distort = (vec2(fbm2(p * 1.3), fbm2(p * 1.3 + 5.2)) - 0.5) * 0.012;
+        vec4 ruv = vRefl;
+        ruv.xy += distort * ruv.w;
+        vec3 sharp = texture2DProj(tRefl, ruv).rgb;
+        vec3 blurred = texture2DProj(tReflBlur, ruv).rgb;
+        float rough = smoothstep(0.3, 0.75, n1);
+        vec3 refl = mix(sharp, blurred, clamp(0.55 + 0.42 * rough, 0.0, 1.0));
+        vec3 V = normalize(uCamPos - vWorld);
+        float ndv = clamp(V.y, 0.0, 1.0);
+        float fres = 0.04 + 0.96 * pow(1.0 - ndv, 5.0);
+        vec3 base = vec3(0.006, 0.008, 0.011) * (0.75 + 0.5 * n2);
+        vec2 tile = abs(fract(p / 2.4) - 0.5);
+        float seam = smoothstep(0.492, 0.5, max(tile.x, tile.y));
+        base *= 1.0 - seam * 0.5;
+        vec3 col = base + refl * mix(0.32, 1.0, fres) * uReflPower * (1.0 - seam * 0.35);
+        for (int i = 0; i < ${MAX_POOLS}; i++){
+          vec2 d = p - uPools[i].xz;
+          float rr = uPools[i].w;
+          float k = exp(-dot(d, d) / (rr * rr));
+          col += uPoolCols[i] * k * (0.75 + 0.25 * n2);
+        }
+        float ang = atan(p.y, p.x) / 6.28318 + 0.5;
+        float chase = smoothstep(0.0, 0.01, uRings * 1.02 - ang);
+        float ring1 = 1.0 - smoothstep(0.025, 0.07, abs(r - 9.4));
+        float ring2 = (1.0 - smoothstep(0.015, 0.05, abs(r - 12.4))) * step(0.45, fract(ang * 96.0));
+        float ring3 = 1.0 - smoothstep(0.02, 0.06, abs(r - 25.9));
+        col += uRingColor * (ring1 * 3.2 + ring2 * 1.4 + ring3 * 1.6) * chase;
+        col += uRingColor * exp(-abs(r - 9.4) * 1.6) * 0.035 * uRings;
+        gl_FragColor = vec4(applyFog(col, vDist), 1.0);
+      }
+    `,
+  });
+}
+
+// Crowd lights on the bowl: phone flashes, LED wristbands and dim silhouettes.
+export function crowdMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uTime: { value: 0 },
+      uPower: { value: 0 },
+      uScale: { value: 600 },
+      uWave: { value: 0 },
+      uWaveOn: { value: 0 },
+      uPixelRatio: { value: 1 },
+      ...fogUniforms,
+    },
+    vertexShader: /* glsl */ `
+      attribute vec4 aData;
+      uniform float uTime, uPower, uScale, uWave, uWaveOn, uFogDensity;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float dist = -mv.z;
+        float kind = aData.y;
+        float ang = atan(position.x, position.z);
+        float dA = abs(mod(ang - uWave + 3.14159, 6.28318) - 3.14159);
+        float wave = exp(-dA * dA * 30.0) * uWaveOn;
+        vec3 col;
+        float a;
+        if (kind < 0.03) {
+          float tw = 0.5 + 0.5 * sin(uTime * (1.2 + aData.x * 2.5) + aData.x * 40.0);
+          col = vec3(0.82, 0.88, 1.0) * 1.5;
+          a = tw;
+        } else if (kind < 0.30) {
+          float beat = 0.25 + 0.75 * pow(0.5 + 0.5 * sin(uTime * 1.9 - ang * 3.0 + aData.x * 0.6), 3.0);
+          col = mix(vec3(0.05, 0.22, 1.0), vec3(0.25, 0.55, 1.0), aData.x) * 1.05;
+          a = beat;
+        } else {
+          col = vec3(0.0);
+          a = 0.0;
+        }
+        col += vec3(0.45, 0.7, 1.0) * wave * 2.2 * step(0.0, 0.62 - kind);
+        a = max(a, wave * step(0.0, 0.62 - kind));
+        a *= step(aData.w, uPower);
+        float fd = uFogDensity * dist;
+        float fog = exp(-fd * fd * 1.6);
+        float s = aData.z * uScale / max(dist, 0.1);
+        gl_PointSize = clamp(s, 1.0, 10.0);
+        vAlpha = a * min(1.0, s * s) * fog;
+        vColor = col;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main(){
+        float d = length(gl_PointCoord - 0.5);
+        float m = smoothstep(0.5, 0.1, d);
+        gl_FragColor = vec4(vColor * vAlpha * m, 1.0);
+      }
+    `,
+  });
+}
+
+// Floating dust rendered as out-of-focus bokeh discs (cheap depth of field).
+export function bokehMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uTime: { value: 0 },
+      uPower: { value: 0 },
+      uScale: { value: 600 },
+      uFocus: { value: 20 },
+      uAperture: { value: 40 },
+      ...fogUniforms,
+    },
+    vertexShader: /* glsl */ `
+      attribute vec4 aData;
+      uniform float uTime, uPower, uScale, uFocus, uAperture, uFogDensity;
+      varying float vAlpha;
+      varying vec3 vColor;
+      void main(){
+        vec3 p = position;
+        p.x += sin(uTime * 0.07 + aData.x * 6.2831) * 0.9;
+        p.y += sin(uTime * 0.11 + aData.x * 17.0) * 0.6;
+        p.z += cos(uTime * 0.06 + aData.x * 9.0) * 0.9;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float dist = max(-mv.z, 0.1);
+        float sharp = aData.z * uScale / dist;
+        float coc = uAperture * abs(dist - uFocus) / dist;
+        float size = sharp + coc;
+        gl_PointSize = clamp(size, 1.0, 160.0);
+        float energy = (max(sharp, 1.5) * max(sharp, 1.5)) / (size * size);
+        float fd = uFogDensity * dist;
+        vAlpha = 0.55 * aData.y * clamp(energy, 0.01, 1.0) * exp(-fd * fd) * uPower * smoothstep(150.0, 60.0, size);
+        vColor = mix(vec3(0.55, 0.72, 1.0), vec3(0.9, 0.95, 1.0), aData.x);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      varying float vAlpha;
+      varying vec3 vColor;
+      void main(){
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        float edge = smoothstep(1.0, 0.86, d);
+        float rim = mix(0.7, 1.0, smoothstep(0.45, 0.95, d));
+        gl_FragColor = vec4(vColor * vAlpha * edge * rim, 1.0);
+      }
+    `,
+  });
+}
+
+// Soft additive haze glow, billboarded, centred on the brightest part of the arena.
+export function hazeMaterial(color = 0x3a6dff) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: 0 },
+      uTime: { value: 0 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main(){
+        vUv = uv;
+        vec3 camRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+        vec3 camUp = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+        vec3 center = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        float sx = length(modelMatrix[0].xyz);
+        float sy = length(modelMatrix[1].xyz);
+        vec3 wp = center + camRight * position.x * sx + camUp * position.y * sy;
+        gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uIntensity, uTime;
+      varying vec2 vUv;
+      ${NOISE}
+      void main(){
+        vec2 p = vUv - 0.5;
+        float r = length(p) * 2.0;
+        float g = exp(-r * r * 3.2);
+        float n = 0.65 + 0.7 * fbm2(vUv * 3.0 + vec2(uTime * 0.01, -uTime * 0.015));
+        gl_FragColor = vec4(uColor * g * n * uIntensity, 1.0);
+      }
+    `,
+  });
+}
+
+// Broadcast screen: bends like a flexible LED sheet with scroll velocity, has a bezel,
+// a reveal wipe and a glass sheen. Plane is W x H in XY, facing +Z.
+export function screenMaterial(map, W, H) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    side: THREE.DoubleSide,
+    uniforms: {
+      map: { value: map },
+      uTime: { value: 0 },
+      uBend: { value: 0 },
+      uFlutter: { value: 0 },
+      uReveal: { value: 0 },
+      uFocus: { value: 0 },
+      uOpacity: { value: 0 },
+      uSize: { value: new THREE.Vector2(W, H) },
+      ...fogUniforms,
+    },
+    vertexShader: /* glsl */ `
+      uniform float uTime, uBend, uFlutter;
+      uniform vec2 uSize;
+      varying vec2 vUv;
+      varying vec3 vWorld;
+      varying float vDist;
+      void main(){
+        vUv = uv;
+        vec3 p = position;
+        float u = uv.x - 0.5;
+        float v = uv.y - 0.5;
+        p.z += uBend * (u * u * 4.0 - 0.33) * uSize.x * 0.22;
+        p.z += sin(uv.x * 5.0 + uTime * 2.3 + uv.y * 2.0) * uFlutter * 0.22;
+        p.z += sin(uv.y * 4.0 - uTime * 1.7) * uFlutter * 0.08 * u * 2.0;
+        p.y += sin(uv.x * 3.14159) * uFlutter * 0.05;
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz;
+        vec4 mv = viewMatrix * wp;
+        vDist = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform sampler2D map;
+      uniform float uTime, uReveal, uFocus, uOpacity;
+      uniform vec2 uSize;
+      varying vec2 vUv;
+      varying vec3 vWorld;
+      varying float vDist;
+      ${NOISE}
+      ${FOG}
+      void main(){
+        vec3 N = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+        vec3 V = normalize(cameraPosition - vWorld);
+        float facing = abs(dot(N, V));
+        vec2 bz = vec2(0.10) / uSize;
+        vec2 inner = (vUv - bz) / (1.0 - 2.0 * bz);
+        float inside = step(0.0, inner.x) * step(inner.x, 1.0) * step(0.0, inner.y) * step(inner.y, 1.0);
+        vec3 content = texture2D(map, clamp(inner, 0.0, 1.0)).rgb;
+        float diag = inner.x * 0.82 + (1.0 - inner.y) * 0.18;
+        float rev = smoothstep(diag - 0.02, diag, uReveal * 1.25 - 0.1);
+        float head = smoothstep(0.06, 0.0, abs(uReveal * 1.25 - 0.1 - diag)) * step(uReveal, 0.98);
+        float scan = 0.93 + 0.07 * sin(inner.y * 540.0);
+        vec3 col = content * 1.25 * scan * rev * (0.55 + 0.45 * uFocus);
+        col += vec3(0.5, 0.75, 1.0) * head * 1.8;
+        float sweepPos = fract(uTime * 0.06) * 2.2 - 0.6;
+        float sweep = smoothstep(0.12, 0.0, abs(inner.x + inner.y * 0.35 - sweepPos)) * 0.10;
+        float fres = pow(1.0 - facing, 3.0);
+        col += vec3(0.55, 0.72, 1.0) * (sweep + fres * 0.35) * inside;
+        // bezel: dark brushed frame with a thin light edge
+        vec2 e = min(vUv, 1.0 - vUv) * uSize;
+        float edgeLine = smoothstep(0.012, 0.0, abs(min(e.x, e.y) - 0.035));
+        vec3 bezel = vec3(0.012, 0.014, 0.02) * (0.8 + 0.4 * vnoise2(vUv * vec2(300.0, 6.0))) + vec3(0.25, 0.55, 1.0) * edgeLine * 0.9;
+        col = mix(bezel + vec3(0.3, 0.45, 0.7) * fres * 0.25, col, inside);
+        gl_FragColor = vec4(applyFog(col, vDist), uOpacity);
+      }
+    `,
+  });
+}

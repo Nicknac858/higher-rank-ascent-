@@ -4,6 +4,13 @@ Separate design explorations for Higher Rank. Neither replaces any approved High
 
 ## Candidates
 
+**The Arena** (newest, stage one) — `arena/` (Vite project), single-file copy at
+`versions/v8-arena-stage-one.html`. Branch `claude/arena-hero`.
+A round esports stage under a centre-hung halo of LED screens, a lighting truss with moving
+beams, a reflective floor and a bowl of crowd lights. Scrolling orbits the camera while three
+broadcast screens (web design, marketing, live events and esports) swing in on a diagonal and
+bend like LED sheets with scroll speed. See `arena/README.md`.
+
 **The Conduit** (current direction) — `conduit/index.html`
 A structure you descend. A vertical conduit of cables, helical wires, tunnel ribs and wide
 outer arcs runs far beyond the frame; scrolling carries you down it, past node collars, from
@@ -17,6 +24,7 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
+- `v8-arena-stage-one.html` — The Arena, stage one (hero, services, close)
 - `v1-rank-order.html` — typographic ranked-list concept (not approved)
 - `v2-ascent-terraces-vermilion.html` — first WebGL world
 - `v3-ascent-terraces-aurora.html` — new palette and richer sky
