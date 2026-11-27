@@ -385,7 +385,7 @@ export function buildArena({ quality, renderer, accent = null }) {
     anim.beams.push({
       kind: 'spot', i, t, pos: beam.position.clone(), head, lensMat, beam, color: new THREE.Color(color),
       half: THREE.MathUtils.degToRad(5.2), toCrowd, seed: rand() * 10, target: new THREE.Vector3(), dir: new THREE.Vector3(0, -1, 0), len: 15,
-      gain: color === 0x2f6dff ? 1.5 : (ACC && color === ACC ? 1.35 : 1.0),
+      gain: color === 0x2f6dff ? 1.5 : (ACC && color === ACC ? 1.15 : 1.0),
     });
   }
   const nWash = quality.washes;
