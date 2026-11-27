@@ -27,9 +27,9 @@ export class GlassPass extends Pass {
     this.copy = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 2),
       new THREE.ShaderMaterial({
-        uniforms: { tFrame: { value: null } },
+        uniforms: { tFrame: { value: null }, uDebug: { value: 0 } },
         vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-        fragmentShader: 'uniform sampler2D tFrame; varying vec2 vUv; void main(){ gl_FragColor = texture2D(tFrame, vUv); }',
+        fragmentShader: 'uniform sampler2D tFrame; uniform float uDebug; varying vec2 vUv; void main(){ gl_FragColor = mix(texture2D(tFrame, vUv), vec4(1.0, 0.0, 1.0, 1.0), uDebug); }',
         depthTest: false,
         depthWrite: false,
       }),
@@ -114,6 +114,7 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
       uOpacity: { value: 1 },
       uEdge: { value: 1 },
       uSheen: { value: 0.06 },
+      uKill: { value: new THREE.Vector4(0, 0, 0, 0) },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
@@ -134,17 +135,26 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
       uniform float uR, uCorner, uScale, uReveal, uFocus, uOpacity, uEdge, uSheen;
       uniform mat3 uObjToView, uViewToWorld;
       uniform vec3 uPaneView, uAccent;
+      uniform vec4 uKill; // diagnostics: x env reflection, y sheen, z edge + lip, w backdrop (skipped, not zeroed)
       varying vec3 vObj;
       varying float vDist;
       ${FOG}
 
-      // what the glass reflects: the arena's light columns, the ring of light at truss height,
-      // a soft roof, and the accent glow of the stage below
+      // What the glass reflects: the arena's light columns, the ring of light at truss height, a soft roof
+      // and the accent glow of the stage below. No arc tangent here: on the owner's Intel GPU (ANGLE/D3D) its
+      // branch cut produced NaN along a line across the pane. The 7 columns come from (cos az, sin az) raised
+      // to the 7th power as a unit complex number, and the narrow peak from repeated squaring. Squares are
+      // written out: a negative base raised to a power is NaN on D3D, and bloom spreads NaN over the frame.
       vec3 arenaEnv(vec3 r){
         float up = r.y;
-        float az = atan(r.x, r.z + 1e-5);
-        float cols = pow(max(0.5 + 0.5 * cos(az * 7.0 + 0.6), 0.0), 40.0) * smoothstep(-0.05, 0.3, up) * (1.0 - smoothstep(0.6, 0.95, up));
-        // squares written out: pow() of a negative number is NaN on some GPUs (D3D), and bloom spreads NaN over the frame
+        vec2 e = r.zx / max(length(r.zx), 1e-4);
+        vec2 z2 = vec2(e.x * e.x - e.y * e.y, 2.0 * e.x * e.y);
+        vec2 z4 = vec2(z2.x * z2.x - z2.y * z2.y, 2.0 * z2.x * z2.y);
+        vec2 z6 = vec2(z4.x * z2.x - z4.y * z2.y, z4.x * z2.y + z4.y * z2.x);
+        vec2 z7 = vec2(z6.x * e.x - z6.y * e.y, z6.x * e.y + z6.y * e.x);
+        float b = max(0.5 + 0.5 * (z7.x * 0.825336 - z7.y * 0.564642), 0.0);
+        float b2 = b * b; float b4 = b2 * b2; float b8 = b4 * b4; float b16 = b8 * b8;
+        float cols = b16 * b16 * b8 * smoothstep(-0.05, 0.3, up) * (1.0 - smoothstep(0.6, 0.95, up));
         float re = (up - 0.38) * 8.0;
         float ring = exp(-re * re);
         float roof = smoothstep(0.55, 1.0, up);
@@ -170,12 +180,14 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
         vec3 pv = uObjToView * (p * uScale) + uPaneView;
         vec3 V = normalize(-pv);
         float ndv = clamp(dot(n, V), 0.0, 1.0);
-        float fres = pow(1.0 - ndv, 4.0);
+        float f1 = 1.0 - ndv;
+        float fres = f1 * f1 * f1 * f1;
 
         // frosted backdrop, bent gently across the face and strongly around the rounded rim
         vec2 suv = gl_FragCoord.xy / uResolution;
         vec2 off = n.xy * (0.006 + 0.05 * rim * rim);
-        vec3 back = texture2D(tBackdrop, suv - off).rgb;
+        vec3 back = vec3(0.05, 0.06, 0.1);
+        if (uKill.w < 0.5) back = texture2D(tBackdrop, suv - off).rgb;
         vec3 col = back * vec3(0.60, 0.68, 0.84) + vec3(0.008, 0.013, 0.026) * (0.6 + 0.4 * suv.y);
 
         // content on the face; its transparent parts let the glass show through
@@ -192,22 +204,25 @@ export function glassMaterial({ map, W, H, r, corner, accent = 0x2f6dff, shared 
 
         // reflections: faint face-on, strong at grazing angles, so light sweeps across as the pane turns
         vec3 R = reflect(-V, n);
-        col += arenaEnv(uViewToWorld * R) * mix(0.10, 1.0, fres) * (1.0 - 0.4 * rim);
+        if (uKill.x < 0.5) {
+          vec3 Rw = uViewToWorld * R;
+          col += arenaEnv(Rw) * mix(0.10, 1.0, fres) * (1.0 - 0.4 * rim);
+        }
 
         // a broad sheen across the face; it slides as the pane turns, so light sweeps over the glass
         float sweepPos = 0.55 + n.x * 1.7;
         float se = (cuv.x + (1.0 - cuv.y) * 0.35 - sweepPos) * 3.2;
         float sheen = exp(-se * se);
-        col += vec3(0.62, 0.78, 1.0) * sheen * uSheen * face;
+        if (uKill.y < 0.5) col += vec3(0.62, 0.78, 1.0) * sheen * uSheen * face;
 
         // light-pipe edge: glass edges glow; cool on top, picking up the accent underneath
         float upW = (uViewToWorld * n).y;
         vec3 edgeCol = mix(vec3(0.62, 0.86, 1.0), uAccent * 1.4, smoothstep(0.2, -0.7, upW) * 0.8);
-        col += edgeCol * pow(rim, 1.6) * (0.55 + 1.6 * fres) * uEdge;
+        if (uKill.z < 0.5) col += edgeCol * (rim * sqrt(rim)) * (0.55 + 1.6 * fres) * uEdge;
         // a crisp lip where the flat face rolls into the edge
         float lip = 1.0 - smoothstep(0.0, max(fwidth(d2), 1e-6) * 1.6, abs(d2 + 0.004));
         float topLit = 0.35 + 0.65 * smoothstep(-0.3, 0.7, g2.y);
-        col += vec3(0.70, 0.85, 1.0) * lip * (0.25 + 0.75 * fres) * 0.75 * topLit;
+        if (uKill.z < 0.5) col += vec3(0.70, 0.85, 1.0) * lip * (0.25 + 0.75 * fres) * 0.75 * topLit;
 
         // last line of defence: max() returns the non-NaN operand on D3D, so a stray NaN can't reach bloom
         gl_FragColor = vec4(max(applyFog(col, vDist), vec3(0.0)), uOpacity);

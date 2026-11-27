@@ -244,6 +244,14 @@ async function boot() {
   const composer = new EffectComposer(renderer, { frameBufferType: bufferType, multisampling: q.msaa });
   composer.addPass(new RenderPass(scene, camera));
   composer.addPass(glassPass);
+  // Diagnostics via the URL hash (the only part of the URL the artifact host passes through), e.g.
+  // #crack-nosmaa. crack: frame behind the glass in magenta; nosmaa / nosharp: drop those passes;
+  // noenv / nosheen / noedge / noback: switch off one glass term.
+  const DIAG = new Set(location.hash.slice(1).split(/[-+_,]/));
+  if (DIAG.has('crack')) glassPass.copy.material.uniforms.uDebug.value = 1;
+  screens.forEach((sc) => {
+    sc.mat.uniforms.uKill.value.set(+DIAG.has('noenv'), +DIAG.has('nosheen'), +DIAG.has('noedge'), +DIAG.has('noback'));
+  });
   const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 1.0, luminanceSmoothing: 0.3, intensity: 0.7, radius: 0.56, levels: 7, resolutionScale: q.bloomScale });
   const toneMode = params.get('tone') === 'agx' ? ToneMappingMode.AGX : ToneMappingMode.ACES_FILMIC;
   const tone = new ToneMappingEffect({ mode: toneMode });
@@ -254,8 +262,8 @@ async function boot() {
   const effects = q.tier >= 2 && q.profile === 'full' ? [ca, bloom, tone, vignette] : [bloom, tone, vignette];
   const mainPass = new EffectPass(camera, ...effects);
   composer.addPass(mainPass);
-  if (q.smaa) composer.addPass(new EffectPass(camera, new SMAAEffect({ preset: SMAAPreset.MEDIUM })));
-  const finishPass = new EffectPass(camera, sharpen, grain);
+  if (q.smaa && !DIAG.has('nosmaa')) composer.addPass(new EffectPass(camera, new SMAAEffect({ preset: SMAAPreset.MEDIUM })));
+  const finishPass = DIAG.has('nosharp') ? new EffectPass(camera, grain) : new EffectPass(camera, sharpen, grain);
   finishPass.dithering = true;
   composer.addPass(finishPass);
 
@@ -327,7 +335,7 @@ async function boot() {
 
   // #stats on the link (or ?stats) shows frame rate and render resolution for tuning.
   let statsEl = null;
-  if (location.hash === '#stats' || params.has('stats')) {
+  if (location.hash === '#stats' || DIAG.size > 1 || ['crack', 'nosmaa', 'nosharp', 'noenv', 'nosheen', 'noedge', 'noback'].some((k) => DIAG.has(k)) || params.has('stats')) {
     statsEl = document.createElement('div');
     statsEl.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:60;font:500 12px/1.4 ui-monospace,monospace;color:#cfe2ff;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre';
     document.body.appendChild(statsEl);

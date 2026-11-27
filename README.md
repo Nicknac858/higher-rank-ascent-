@@ -24,7 +24,8 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
-- `v15-arena-glass-windows.html` — The Arena: glass windows that turn through the frame, sharp stage ticker (current)
+- `v16-arena-glass-chairs.html` — The Arena: glass windows fixed for Intel GPUs, esports chairs, monitors and keyboards (current)
+- `v15-arena-glass-windows.html` — The Arena: glass windows that turn through the frame, sharp stage ticker (black flicker on Intel GPUs)
 - `v14-arena-reveal-hairline.html` — The Arena: screen reveal edge is a crisp hairline instead of a glare band
 - `v13-arena-light-profile.html` — The Arena: light profile for built-in GPUs, verified at native resolution on an Intel HD 530
 - `v12-arena-crowd-crisp.html` — The Arena: organic crowd, crisp rendering pass, lens points, reflection fix

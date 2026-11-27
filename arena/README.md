@@ -112,3 +112,19 @@ python3 -I tools/shoot.py dist /tmp/shots both 0,1,2,3,4
 `?poster` hides the page so only the 3D frame is captured (used to make `src/poster.jpg`).
 
 Not yet tested on a real GPU or phone.
+
+## Device diagnostics (URL hash)
+
+The artifact host only passes a simple `#name` to the page, so diagnostics are hash words joined with `-`,
+e.g. `#crack-nosmaa`. Any of them also turns on the `#stats` readout.
+
+- `#crack`: paints the frame behind the glass magenta, so any gap in the panes shows up.
+- `#nosmaa`, `#nosharp`: drop the SMAA or sharpening pass.
+- `#noenv`, `#nosheen`, `#noedge`, `#noback`: skip one glass term (reflection, sheen, edge + lip, frosted backdrop).
+  These skip the computation rather than multiplying it by zero, because NaN times zero is still NaN.
+
+Lessons from the owner's Intel HD 530 (ANGLE on D3D): a negative base raised to a power is NaN, the arc
+tangent's branch cut produced NaN along a line across a flat glass pane, and mip bloom spreads a single NaN
+pixel over the whole frame (that was the "black flicker"). The glass shader uses neither; its output also
+passes through `max(., 0)`, which returns the non-NaN operand on D3D. SwiftShader in local tests computes
+these "correctly", so check new shaders on the real device.
