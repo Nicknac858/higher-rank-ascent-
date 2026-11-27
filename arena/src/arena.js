@@ -168,10 +168,17 @@ export function buildArena({ quality, renderer, accent = null }) {
   stage.add(step);
 
   const tickerItems = ['HIGHER RANK', 'WEB DESIGN', 'MARKETING', 'LIVE EVENTS', 'ESPORTS'];
-  const fasciaTex = makeTickerTexture({ items: tickerItems, height: 96 });
+  const fasciaTex = makeTickerTexture({ items: tickerItems, height: 128 });
+  // fine-pitch fascia (~4 mm diodes, 0.5 m cabinets): type reads as clean letters, not blocks
+  const fasciaH = 0.4;
+  const fasciaPitch = 0.004;
   const fascia = new THREE.Mesh(
-    new THREE.CylinderGeometry(DIM.stageR + 0.02, DIM.stageR + 0.02, 0.36, 320, 1, true),
-    ledMaterial({ map: fasciaTex, grid: [1700, 13], intensity: 2.2, dot: 0.38, cab: [26, 13] }),
+    new THREE.CylinderGeometry(DIM.stageR + 0.02, DIM.stageR + 0.02, fasciaH, 320, 1, true),
+    ledMaterial({
+      map: fasciaTex,
+      grid: [Math.round((TAU * (DIM.stageR + 0.02)) / fasciaPitch), Math.round(fasciaH / fasciaPitch)],
+      intensity: 2.2, dot: 0.38, cab: [125, 125],
+    }),
   );
   fascia.material.uniforms.uRepeat.value = 4;
   fascia.position.y = 0.56;

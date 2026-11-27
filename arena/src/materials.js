@@ -61,9 +61,15 @@ export function ledMaterial({ map, grid, intensity = 2.4, tint = 0xffffff, side 
         vec2 cell = floor(g);
         vec2 f = fract(g) - 0.5;
         vec2 cuv = (cell + 0.5) / uGrid;
-        vec2 suv = vec2(fract(cuv.x * uRepeat + uOffset), cuv.y);
-        vec3 c = texture2D(map, suv).rgb;
         float px = length(fwidth(g));
+        // each diode shows the average of the content under it (filtered over its footprint, like an LED
+        // processor scaling video); once diodes are smaller than a pixel, sample the content continuously so
+        // small type stays smooth instead of breaking into blocks
+        vec2 suv = vec2(fract(cuv.x * uRepeat + uOffset), cuv.y);
+        vec3 cDiode = textureGrad(map, suv, vec2(uRepeat / uGrid.x, 0.0), vec2(0.0, 1.0 / uGrid.y)).rgb;
+        vec2 ucont = vec2(uv0.x * uRepeat + uOffset, uv0.y);
+        vec3 cCont = textureGrad(map, vec2(fract(ucont.x), ucont.y), dFdx(ucont), dFdy(ucont)).rgb;
+        vec3 c = mix(cDiode, cCont, smoothstep(0.45, 0.95, px));
         float d = length(f);
         float dotm = 1.0 - smoothstep(uDot - px * 0.7, uDot + px * 0.7, d);
         float cover = 3.14159 * uDot * uDot;

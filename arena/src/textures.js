@@ -40,7 +40,7 @@ function finish(c, { wrap = false, mipmaps = false } = {}) {
   t.generateMipmaps = mipmaps;
   t.minFilter = mipmaps ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
   t.magFilter = THREE.LinearFilter;
-  t.anisotropy = 4;
+  t.anisotropy = 8;
   if (wrap) t.wrapS = THREE.RepeatWrapping;
   t.needsUpdate = true;
   return t;
@@ -153,7 +153,7 @@ export function makeHaloTexture() {
   g.fillStyle = ACCENT_HI;
   g.fillRect(bx + 186, 118, 24, 24);
 
-  return finish(c, { wrap: true });
+  return finish(c, { wrap: true, mipmaps: true });
 }
 
 // Seamless scrolling ticker band.
@@ -191,7 +191,7 @@ export function makeTickerTexture({ items, height = 96, fg = BLUE_HI, accent = n
     });
   }
   g.restore();
-  return finish(c, { wrap: true });
+  return finish(c, { wrap: true, mipmaps: true });
 }
 
 // Underside of the halo: a dial with the rank insignia at its centre.
@@ -228,7 +228,7 @@ export function makeUndersideTexture() {
     g.stroke();
   }
   drawChevrons(g, cx - 150, cy - 170, 300, 340, 3, WHITE, 0.3);
-  return finish(c, { mipmaps: false });
+  return finish(c, { mipmaps: true });
 }
 
 // Small monitor content for the players' desks.
