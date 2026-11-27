@@ -17,7 +17,7 @@ const TEST = params.has('test');
 if (params.has('poster')) document.documentElement.classList.add('posterize');
 const REDUCED = params.has('reduced') || (matchMedia('(prefers-reduced-motion: reduce)').matches && !params.has('motion'));
 const MOTION = !REDUCED;
-// Second colour: vivid electric purple by default (owner's pick, 2026-11-27). Compare others with
+// Second colour: ultraviolet #9d00ff by default (owner's pick, option H, 2026-11-27). Compare others with
 // ?accent=name or, inside the artifact viewer, #name (e.g. #purple). #blue = blue only.
 const ACCENTS = {
   magenta: { hex: 0xff3d9a, css: '#ff3d9a' },
@@ -30,7 +30,7 @@ const ACCENTS = {
   aqua: { hex: 0x2ff3d2, css: '#2ff3d2' },
   blue: null,
 };
-const accentKey = [params.get('accent'), location.hash.slice(1)].find((k) => k && k in ACCENTS) || 'electric';
+const accentKey = [params.get('accent'), location.hash.slice(1)].find((k) => k && k in ACCENTS) || 'ultraviolet';
 const ACCENT = ACCENTS[accentKey];
 if (ACCENT) document.documentElement.style.setProperty('--accent', ACCENT.css);
 const html = document.documentElement;

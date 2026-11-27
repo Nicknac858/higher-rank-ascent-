@@ -57,10 +57,10 @@ looping, inline video; the screen shader takes any texture.
 
 ## Colour
 
-Black, electric blue for the brand and structure, and one second colour (vivid electric purple, `#b41fff`)
+Black, electric blue for the brand and structure, and one second colour (ultraviolet, `#9d00ff`)
 kept to highlight moments: the rank chevrons, the centre of the stage, one beam in four, the
 dashed floor ring, the crowd wave and the screens' broadcast bars. Buttons stay blue.
-Compare other options with `?accent=ultraviolet|hot|magenta|purple|violet|gold|aqua|blue`, or `#ultraviolet` etc. on the
+Compare other options with `?accent=electric|hot|magenta|purple|violet|gold|aqua|blue`, or `#electric` etc. on the
 artifact link. The default lives in `src/main.js` (`ACCENTS`).
 
 ## Quality and fallbacks
