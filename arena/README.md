@@ -143,3 +143,15 @@ repainted) and `.face` (metallic gradient plus a band of light at `--sweep`). Th
 the arena powers on and again as the hero scrolls away, while the title tilts back into the arena
 (`updateDOM`). The nav pill slides to the section in view and a progress line runs along the bar.
 Reduced motion: no tilt, sweep, sheen or pill animation.
+
+## Live preview (Vercel)
+
+- URL: https://higher-rank-arena.vercel.app (project `higher-rank-arena`, team `nyoung-6483`), separate from the
+  owner's existing `higher-rank-website` project, which is untouched.
+- Built by Vercel from GitHub: repo `Nicknac858/higher-rank-ascent-`, branch `claude/arena-hero`, root `arena`,
+  `npm ci` then `npm run build`, output `dist`, framework Vite.
+- First deploy 2026-11-27 from commit 8bb32eb (deployment `dpl_2jgVvt1fAExbwZPRb7A6nLDBgtdr`).
+- The live link changes only when a new production deploy is made from this branch (the project's production
+  branch is the repo default, which has no `arena/` folder). Update it once the owner approves a new version.
+- `<meta name="robots" content="noindex">` keeps the concept (placeholder footage) out of search results;
+  remove it at launch.
