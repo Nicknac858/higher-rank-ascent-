@@ -24,7 +24,8 @@ Moonlit dunes climbed toward sunrise. Preserved unchanged.
 
 ## Versions
 `versions/` holds every save point, so nothing is lost:
-- `v13-arena-light-profile.html` — The Arena: light profile for built-in GPUs, verified at native resolution on an Intel HD 530 (current)
+- `v14-arena-reveal-hairline.html` — The Arena: screen reveal edge is a crisp hairline instead of a glare band (current)
+- `v13-arena-light-profile.html` — The Arena: light profile for built-in GPUs, verified at native resolution on an Intel HD 530
 - `v12-arena-crowd-crisp.html` — The Arena: organic crowd, crisp rendering pass, lens points, reflection fix
 - `v11-arena-ultraviolet.html` — The Arena with ultraviolet as the second colour (owner's pick)
 - `v10-arena-electric-purple.html` — The Arena with vivid electric purple as the second colour

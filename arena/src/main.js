@@ -294,7 +294,6 @@ async function boot() {
   let velocity = 0;
   let startTime = null;
 
-  const _sv = new THREE.Vector3();
   function renderFrame({ T, time, elapsed, dt }) {
     const mobile = camera.aspect < 0.9 || mobileMQ.matches;
     const power = powerAt(elapsed, !MOTION);
@@ -304,22 +303,8 @@ async function boot() {
     camera.updateMatrixWorld();
     screens.forEach((s, i) => placeScreen(s, i, T, camera, { mobile, velocity, time, motion: MOTION }));
     let screenFocus = 0;
-    let screenVis = 0;
-    let screenDepth = 0;
-    screens.forEach((s, i) => {
-      const st = serviceState(i, T);
-      screenFocus = Math.max(screenFocus, st.focus);
-      if (s.mesh.visible && st.opacity > 0.05) {
-        screenVis = Math.max(screenVis, st.opacity);
-        _sv.copy(s.mesh.position).applyMatrix4(camera.matrixWorldInverse);
-        screenDepth = Math.max(screenDepth, -_sv.z);
-      }
-    });
+    for (let i = 0; i < 3; i++) screenFocus = Math.max(screenFocus, serviceState(i, T).focus);
     power.screenFocus = screenFocus;
-    // beams between the camera and any visible screen fade, at whatever depth it is
-    power.nearMask = screenVis;
-    power.nearEnd = screenDepth + 2.5;
-    power.nearStart = Math.max(1, screenDepth - 3.0);
     arena.update({ time, power, motion: MOTION ? 1 : 0, camera, viewHeight: viewH, pixelRatio: renderer.getPixelRatio() });
     arena.anim.dust.material.uniforms.uFocus.value = focusDist;
     arena.anim.dust.material.uniforms.uAperture.value = (mobile ? 26 : 38) * (viewH / 1000);
@@ -390,6 +375,7 @@ async function boot() {
     html.classList.add('gl-ready', 'test');
     window.__hr = {
       quality: q,
+      screens,
       renderAt({ T = 0, time = 12, elapsed = 12, frames = 2, vel = 0 } = {}) {
         velocity = vel;
         for (let i = 0; i < frames; i++) renderFrame({ T, time: time + i / 60, elapsed: elapsed + i / 60, dt: 1 / 60 });

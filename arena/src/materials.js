@@ -132,7 +132,6 @@ export function beamMaterial(color) {
       uIntensity: { value: 0 },
       uTime: { value: 0 },
       uCheap: { value: 0 },
-      uNear: { value: new THREE.Vector3(8, 12.5, 0) },
       ...fogUniforms,
     },
     vertexShader: /* glsl */ `
@@ -155,7 +154,6 @@ export function beamMaterial(color) {
     fragmentShader: /* glsl */ `
       uniform vec3 uColor;
       uniform float uIntensity, uTime, uCheap;
-      uniform vec3 uNear;
       varying float vAlong;
       varying vec3 vN;
       varying vec3 vV;
@@ -176,9 +174,7 @@ export function beamMaterial(color) {
         }
         float floorFade = smoothstep(0.05, 1.6, vWorld.y);
         float fogK = 1.0 - fogFactor(vDist) * 0.9;
-        // while a broadcast screen is in focus, beams between it and the camera step aside
-        float nearK = mix(1.0, smoothstep(uNear.x, uNear.y, vDist), uNear.z);
-        float k = soft * fall * tip * dust * floorFade * fogK * nearK * uIntensity;
+        float k = soft * fall * tip * dust * floorFade * fogK * uIntensity;
         gl_FragColor = vec4(uColor * k, 1.0);
       }
     `,
@@ -600,11 +596,13 @@ export function screenMaterial(map, W, H) {
         float inside = step(0.0, inner.x) * step(inner.x, 1.0) * step(0.0, inner.y) * step(inner.y, 1.0);
         vec3 content = texture2D(map, clamp(inner, 0.0, 1.0)).rgb;
         float diag = inner.x * 0.82 + (1.0 - inner.y) * 0.18;
-        float rev = smoothstep(diag - 0.02, diag, uReveal * 1.25 - 0.1);
-        float head = smoothstep(0.06, 0.0, abs(uReveal * 1.25 - 0.1 - diag)) * step(uReveal, 0.98);
+        float wipe = uReveal * 1.25 - 0.1;
+        float rev = smoothstep(diag - 0.02, diag, wipe);
+        // wipe edge: a hairline ~2 px wide at any size, kept under the bloom threshold so it stays crisp
+        float edge = (1.0 - smoothstep(0.0, fwidth(diag) * 1.5, abs(diag - wipe - 0.01))) * step(uReveal, 0.98);
         float scan = 0.93 + 0.07 * sin(inner.y * 540.0);
         vec3 col = content * 1.25 * scan * rev * (0.55 + 0.45 * uFocus);
-        col += vec3(0.5, 0.75, 1.0) * head * 1.8;
+        col += vec3(0.45, 0.68, 1.0) * edge;
         float sweepPos = fract(uTime * 0.06) * 2.2 - 0.6;
         float sweep = smoothstep(0.07, 0.0, abs(inner.x + inner.y * 0.35 - sweepPos)) * 0.035;
         float fres = pow(1.0 - facing, 3.0);
